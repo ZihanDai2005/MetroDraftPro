@@ -4,6 +4,23 @@
  */
 package com.mycompany.mavenproject1;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFCell;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import com.itextpdf.io.font.PdfEncodings;
 import com.itextpdf.io.image.ImageData;
 import com.itextpdf.io.image.ImageDataFactory;
@@ -22,25 +39,9 @@ import com.itextpdf.kernel.pdf.xobject.PdfFormXObject;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.element.Image;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFCell;
-
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 /**
  *
- * @author daizhenjin
+ * @author Z.D.
  */
 public class PaidArea {
 
@@ -77,6 +78,7 @@ public class PaidArea {
         try (InputStream fontStream3 = UnpaidArea.class.getResourceAsStream("/fonts/arial bold.ttf")) {
             arialBold = PdfFontFactory.createFont(StreamUtil.inputStreamToArray(fontStream3), PdfEncodings.IDENTITY_H, PdfFontFactory.EmbeddingStrategy.PREFER_EMBEDDED);
         }
+        Color black = new DeviceCmyk(0, 0, 0, 100);
 
         final float bottomTop = (float) 49.423 * 2.83464567f;
         PageSize tempPageSize = new PageSize(pageSizeX, 72 * 2.83464567f);
@@ -149,12 +151,10 @@ public class PaidArea {
                 }
             }
         } catch (FileNotFoundException e) {
-            e.printStackTrace();
+            System.err.println(e.getMessage());
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println(e.getMessage());
         }
-
-        //Document document = new Document(pdfDocument);//回到
 
         PdfCanvas canvas = new PdfCanvas(page);
         //白色背景
@@ -175,8 +175,8 @@ public class PaidArea {
                 .fill()
                 .restoreState();
 
-        float xOutline = 0;
-        float yOutline = 0;
+        float xOutline;
+        float yOutline;
         if (direction.equals("right")) {
             xOutline = starterX + (float) (pageSizeX - 101.805 * 2.83464567f);
         } else {
@@ -188,17 +188,14 @@ public class PaidArea {
         for (int i = 0; i < entrance.size(); i++) {
             //字母外框
             PdfCanvas canvas3 = new PdfCanvas(pdfDocument.getFirstPage());
-            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/outline.pdf")) {
-                PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
+            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/outline.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
                 PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                srcPdfDocument.close();
-
                 canvas3.addXObject(pageXObject, xOutline, yOutline);
             }
 
             //出入口字母
             canvas3.beginText();
-            canvas3.setFillColor(new DeviceCmyk(0, 0, 0, 100));
+            canvas3.setFillColor(black);
             String currentEntrance = entrance.get(i);
             //带角标口
             if (currentEntrance.length() != 1) {
@@ -238,11 +235,10 @@ public class PaidArea {
             canvas3.endText();
 
             //横线
-            backgroundColor = new DeviceCmyk(0, 0, 0, 100);
             float tempLineY = (float) (yOutline - 92.692 * 2.83464567f);
             for (int j = 1; j <= numLines.get(i); j++) {
                 canvas.saveState()
-                        .setFillColor(backgroundColor)
+                        .setFillColor(black)
                         .rectangle(starterX + 28.641 * 2.83464567f, tempLineY, lineWidth, 1.578 * 2.83464567f)
                         .fill()
                         .restoreState();
@@ -257,14 +253,15 @@ public class PaidArea {
             int branchNumLines = numLines.get(i);
             int chineseSpace = 7;
             double intervalPercent;
-            double expandPercent = 1;
-            if (colNeeded == 2) {
-                intervalPercent = 0.1;
-            } else if (colNeeded == 3) {
-                intervalPercent = 0.06;
-            } else {
-                intervalPercent = 0.05;
-            }
+            double expandPercent = 0.1;
+            intervalPercent = switch (colNeeded) {
+                case 2 ->
+                    0.1;
+                case 3 ->
+                    0.06;
+                default ->
+                    0.05;
+            };
             if (colNeeded == 2) {
                 expandPercent = 1.195;
             }
@@ -277,37 +274,31 @@ public class PaidArea {
                 //中文
                 //需要检查有没有改括号
                 PdfCanvas canvas4 = new PdfCanvas(page);
-                canvas4.beginText();
-                canvas4.setFontAndSize(heiTi, 100);
-                canvas4.setCharacterSpacing(chineseSpace);
-                canvas4.setTextRenderingMode(PdfCanvasConstants.TextRenderingMode.FILL_STROKE);
-                canvas4.setLineWidth(0.21f);
-                backgroundColor = new DeviceCmyk(0, 0, 0, 100);
-                canvas4.setStrokeColor(backgroundColor);
-                canvas4.setFillColor(backgroundColor);
 
+                boolean ad = false;
                 if (element[0].contains("**")) {
                     element[0] = element[0].substring(2);
+                    ad = true;
                 } else if (element[0].contains("*")) {
                     element[0] = element[0].substring(1);
                 }
                 float textWidth = heiTi.getWidth(element[0], 100) + chineseSpace * (element[0].length() - 1);
 
-                double scale = 1;
+                double scaleChinese = 1;
                 if (currentRow + branchNumLines <= exitInfo.get(i).size()) { // 右侧有文字
                     if (currentRow <= branchNumLines) { // 第1列
                         if (textWidth >= (lineWidth - 10) * maxWidthPercent * expandPercent) { // 如果超长
-                            scale = (lineWidth - 10) * maxWidthPercent * expandPercent / textWidth;
+                            scaleChinese = (lineWidth - 10) * maxWidthPercent * expandPercent / textWidth;
                         }
                     } else {  // 后续列
                         if (textWidth >= (lineWidth - 10) * maxWidthPercent) {  // 如果超长
-                            scale = (lineWidth - 10) * maxWidthPercent / textWidth;
+                            scaleChinese = (lineWidth - 10) * maxWidthPercent / textWidth;
                         }
                     }
                 } else { // 右侧无文字
                     if (currentRow <= branchNumLines) { // 第1列
                         if (textWidth >= (lineWidth - 10) - (lineWidth - 10) * 0.005) {
-                            scale = ((lineWidth - 10) - (lineWidth - 10) * 0.005) / textWidth;
+                            scaleChinese = ((lineWidth - 10) - (lineWidth - 10) * 0.005) / textWidth;
                         }
                     } else if (currentRow <= branchNumLines * (colNeeded - 1)) { // 第2列-最后一列
                         int currentRowReal2 = (int) Math.ceil((double) currentRow / branchNumLines); // 向上取整
@@ -317,18 +308,15 @@ public class PaidArea {
                             numMaxWidth = 0;
                         }
                         if (textWidth >= (lineWidth - 10) - (lineWidth - 10) * maxWidthPercent * expandPercent - (lineWidth - 10) * numInterval * intervalPercent - (lineWidth - 10) * numMaxWidth * maxWidthPercent - (lineWidth - 10) * 0.005) {
-                            System.out.println("进");
-                            scale = ((lineWidth - 10) - (lineWidth - 10) * maxWidthPercent * expandPercent - (lineWidth - 10) * numInterval * intervalPercent - (lineWidth - 10) * numMaxWidth * maxWidthPercent - (lineWidth - 10) * 0.005) / textWidth;
+                            scaleChinese = ((lineWidth - 10) - (lineWidth - 10) * maxWidthPercent * expandPercent - (lineWidth - 10) * numInterval * intervalPercent - (lineWidth - 10) * numMaxWidth * maxWidthPercent - (lineWidth - 10) * 0.005) / textWidth;
                         }
                     } else { // 最后一列(实际位置最后一列)
                         if (textWidth >= (lineWidth - 10) * (maxWidthPercent - 0.005)) { // 如果超长
-                            scale = (lineWidth - 10) * (maxWidthPercent - 0.005) / textWidth;
+                            scaleChinese = (lineWidth - 10) * (maxWidthPercent - 0.005) / textWidth;
                         }
                     }
                 }
-                canvas4.saveState();
-                canvas4.setTextMatrix((float) scale, 0, 0, 1, 0, 0);
-                textWidth = textWidth * (float) scale;
+                textWidth = textWidth * (float) scaleChinese;
 
                 if (currentRow <= branchNumLines) {
                     if (direction.equals("right")) {
@@ -350,37 +338,26 @@ public class PaidArea {
                         xChinese = starterX + firstColWidth + (intCurrentRowReal - 1) * (lineWidth - 10) * (maxWidthPercent + intervalPercent) + (lineWidth - 10) * intervalPercent;
                     }
                 }
-                canvas4.moveText(xChinese / scale, yChinese); //设置文本的起始位置
-                canvas4.showText(element[0]);
-                yChinese -= interval;
-                canvas4.endText();
 
                 //英文
                 PdfCanvas canvas5 = new PdfCanvas(page);
-                canvas5.beginText();
-                canvas5.setFontAndSize(arial, 66);
-                canvas5.setCharacterSpacing(0);
-                canvas5.setTextRenderingMode(PdfCanvasConstants.TextRenderingMode.FILL_STROKE);
-                canvas5.setLineWidth(0.21f);
-                canvas5.setStrokeColor(backgroundColor);
-                canvas5.setFillColor(backgroundColor);
                 float textWidth2 = arial.getWidth(element[1], 66);
 
-                scale = 1;
+                double scaleEnglish = 1;
                 if (currentRow + branchNumLines <= exitInfo.get(i).size()) { // 右侧有文字
                     if (currentRow <= branchNumLines) { // 第1列
                         if (textWidth2 >= (lineWidth - 10) * maxWidthPercent * expandPercent) { // 如果超长
-                            scale = (lineWidth - 10) * maxWidthPercent * expandPercent / textWidth2;
+                            scaleEnglish = (lineWidth - 10) * maxWidthPercent * expandPercent / textWidth2;
                         }
                     } else {  // 后续列
                         if (textWidth2 >= (lineWidth - 10) * maxWidthPercent) {  // 如果超长
-                            scale = (lineWidth - 10) * maxWidthPercent / textWidth2;
+                            scaleEnglish = (lineWidth - 10) * maxWidthPercent / textWidth2;
                         }
                     }
                 } else { // 右侧无文字
                     if (currentRow <= branchNumLines) { // 第1列
                         if (textWidth2 >= (lineWidth - 10) - (lineWidth - 10) * 0.005) {
-                            scale = ((lineWidth - 10) - (lineWidth - 10) * 0.005) / textWidth2;
+                            scaleEnglish = ((lineWidth - 10) - (lineWidth - 10) * 0.005) / textWidth2;
                         }
                     } else if (currentRow <= branchNumLines * (colNeeded - 1)) { // 第2列-最后一列
                         int currentRowReal2 = (int) Math.ceil((double) currentRow / branchNumLines); // 向上取整
@@ -390,17 +367,15 @@ public class PaidArea {
                             numMaxWidth = 0;
                         }
                         if (textWidth2 >= (lineWidth - 10) - (lineWidth - 10) * maxWidthPercent * expandPercent - (lineWidth - 10) * numInterval * intervalPercent - (lineWidth - 10) * numMaxWidth * maxWidthPercent - (lineWidth - 10) * 0.005) {
-                            scale = ((lineWidth - 10) - (lineWidth - 10) * maxWidthPercent * expandPercent - (lineWidth - 10) * numInterval * intervalPercent - (lineWidth - 10) * numMaxWidth * maxWidthPercent - (lineWidth - 10) * 0.005) / textWidth2;
+                            scaleEnglish = ((lineWidth - 10) - (lineWidth - 10) * maxWidthPercent * expandPercent - (lineWidth - 10) * numInterval * intervalPercent - (lineWidth - 10) * numMaxWidth * maxWidthPercent - (lineWidth - 10) * 0.005) / textWidth2;
                         }
                     } else { // 最后一列(实际位置最后一列)
                         if (textWidth2 >= (lineWidth - 10) * (maxWidthPercent - 0.005)) { // 如果超长
-                            scale = (lineWidth - 10) * (maxWidthPercent - 0.005) / textWidth2;
+                            scaleEnglish = (lineWidth - 10) * (maxWidthPercent - 0.005) / textWidth2;
                         }
                     }
                 }
-                canvas5.saveState();
-                canvas5.setTextMatrix((float) scale, 0, 0, 1, 0, 0);
-                textWidth2 = textWidth2 * (float) scale;
+                textWidth2 = textWidth2 * (float) scaleEnglish;
 
                 if (currentRow <= branchNumLines) {
                     if (direction.equals("right")) {
@@ -423,7 +398,188 @@ public class PaidArea {
                     }
                 }
 
-                canvas5.moveText(xEnglish / scale, yEnglish); //设置文本的起始位置
+                // 广告LOGO
+                if (ad == true) {
+                    //获取广告LOGO图片地址
+                    String logoPath = "";
+                    try {
+                        File excelFile = new File("/Users/daizhenjin/Downloads/logoAddress.xlsx");
+                        BufferedInputStream bis = new BufferedInputStream(new FileInputStream(excelFile));
+                        XSSFWorkbook workbook = new XSSFWorkbook(bis);
+                        XSSFSheet sheet = workbook.getSheetAt(0);
+                        int lastRow = sheet.getLastRowNum();
+
+                        for (int j = 0; j <= lastRow; j++) {
+                            if (sheet.getRow(j).getCell(0).getStringCellValue().equals(element[0])) {
+                                logoPath = sheet.getRow(j).getCell(1).getStringCellValue();
+                            }
+                        }
+
+                        File adLogoFile = new File(logoPath);
+                        ImageData imageData = ImageDataFactory.create(adLogoFile.getAbsolutePath());
+                        Image adLogo = new Image(imageData);
+                        float logoWidth = adLogo.getImageScaledWidth();
+                        float logoHeight = adLogo.getImageScaledHeight();
+
+                        if (exitInfo.get(i).size() <= branchNumLines) { // 只有1列, 加在右侧
+                            double longerTextWidth;
+                            if (textWidth > textWidth2) {
+                                longerTextWidth = textWidth;
+                            } else {
+                                longerTextWidth = textWidth2;
+                            }
+
+                            double moreLeftTextX;
+                            if (xChinese < xEnglish) {
+                                moreLeftTextX = xChinese;
+                            } else {
+                                moreLeftTextX = xEnglish;
+                            }
+
+                            double remainingWidth;
+                            if (direction.equals("left")) {
+                                remainingWidth = (starterX + 28.641 * 2.83464567f + (lineWidth - 10)) - (xChinese + longerTextWidth);
+                            } else {
+                                remainingWidth = moreLeftTextX - (starterX + 28.641 * 2.83464567f + 10);
+                            }
+
+                            if ((51.5 / logoHeight) * logoWidth * 2.83464567f < remainingWidth) { // 高度为51.5时, 宽度没有超过剩余空间
+                                float logoWidthModified = (float) (51.5 / logoHeight) * logoWidth * 2.83464567f;
+                                adLogo.setWidth(logoWidthModified);
+                                adLogo.setHeight((float) 51.5 * 2.83464567f);
+                                if (direction.equals("left")) {
+                                    adLogo.setFixedPosition((float) (xChinese + longerTextWidth + 5 * 2.83464567f), (float) yEnglish + 2.83464567f);
+                                } else {
+                                    adLogo.setFixedPosition((float) moreLeftTextX - logoWidthModified - 5 * 2.83464567f, (float) yEnglish + 2.83464567f);
+                                }
+                            } else { // 扁、宽图或文字超长
+                                float logoWidthModified = (float) (intervalPercent * (lineWidth - 10));
+                                float logoHeightModified = (float) (logoWidthModified / 2.83464567f / logoWidth * logoHeight) * 2.83464567f;
+                                if(logoHeightModified > 51.5 * 2.83464567f){
+                                    logoWidthModified = (float) (51.5 / logoHeight * logoWidth) * 2.83464567f;
+                                    logoHeightModified = (float) 51.5 * 2.83464567f;
+                                }
+                                adLogo.setWidth(logoWidthModified);
+                                adLogo.setHeight(logoHeightModified); // 按照宽度调整高度
+                                if ((lineWidth - 10) - textWidth < logoWidthModified + 10 * 2.83464567f) { // 中文超长
+                                    double addScale = ((lineWidth - 10) - logoWidthModified - 10 * 2.83464567f) / textWidth;
+                                    scaleChinese *= addScale;
+                                    if (direction.equals("right")) {
+                                        double newTextWidth = textWidth * addScale; // 计算调整后的新文字长度
+                                        xChinese += textWidth - newTextWidth; // 文字x坐标加上新旧文字长度差
+                                    }
+                                }
+                                if ((lineWidth - 10) - textWidth2 < logoWidthModified + 10 * 2.83464567f) { // 英文超长
+                                    double addScale = ((lineWidth - 10) - logoWidthModified - 10 * 2.83464567f) / textWidth2;
+                                    scaleEnglish *= addScale;
+                                    if (direction.equals("right")) {
+                                        double newTextWidth2 = textWidth2 * addScale; // 计算调整后的新文字长度
+                                        xEnglish += textWidth2 - newTextWidth2; // 文字x坐标加上新旧文字长度差
+                                    }
+                                }
+
+                                if (direction.equals("left")) {
+                                    adLogo.setFixedPosition((float) (starterX + 28.641 * 2.83464567f + (lineWidth - 10) - logoWidthModified), (float) yEnglish + (54 * 2.83464567f - logoHeightModified) / 2);
+                                } else {
+                                    adLogo.setFixedPosition((float) (starterX + 28.641 * 2.83464567f + 10), (float) yEnglish + (54 * 2.83464567f - logoHeightModified) / 2);
+                                }
+                            }
+                        } else { // 有多列
+                            if (currentRow <= branchNumLines) { // 第1列
+                                double longerTextWidth;
+                                if (textWidth > textWidth2) {
+                                    longerTextWidth = textWidth;
+                                } else {
+                                    longerTextWidth = textWidth2;
+                                }
+                                double moreLeftTextX;
+                                if (xChinese < xEnglish) {
+                                    moreLeftTextX = xChinese;
+                                } else {
+                                    moreLeftTextX = xEnglish;
+                                }
+                                if ((51.5 / logoHeight) * logoWidth * 2.83464567f < intervalPercent * (lineWidth - 10) - 2.83464567f) { // 高度为51.5时, 宽度没有超过间隔 
+                                    float logoWidthModified = (float) (51.5 / logoHeight * logoWidth) * 2.83464567f; // 按照高度调整宽度
+                                    adLogo.setWidth(logoWidthModified);
+                                    adLogo.setHeight((float) 51.5 * 2.83464567f);
+                                    if (direction.equals("left")) {
+                                        adLogo.setFixedPosition((float) (xChinese + longerTextWidth + 5 * 2.83464567f), (float) yEnglish + 2.83464567f); // 自动浮动高度
+                                    } else {
+                                        adLogo.setFixedPosition((float) (moreLeftTextX - 5 * 2.83464567f - logoWidthModified), (float) yEnglish + 2.83464567f); // 自动浮动高度
+                                    }
+                                } else { // 扁、宽图
+                                    float logoWidthModified = (float) (intervalPercent * (lineWidth - 10) - 10 * 2.83464567f);
+                                    float logoHeightModified = (float) (logoWidthModified / 2.83464567f / logoWidth * logoHeight) * 2.83464567f;
+                                    adLogo.setWidth(logoWidthModified);
+                                    adLogo.setHeight(logoHeightModified); // 按照宽度调整高度
+                                    if (direction.equals("left")) {
+                                        adLogo.setFixedPosition((float) (xChinese + longerTextWidth + 5 * 2.83464567f), (float) yEnglish + (54 * 2.83464567f - logoHeightModified) / 2); // 自动浮动高度
+                                    } else {
+                                        adLogo.setFixedPosition((float) (moreLeftTextX - 5 * 2.83464567f - logoWidthModified), (float) yEnglish + (54 * 2.83464567f - logoHeightModified) / 2); // 自动浮动高度
+                                    }
+                                }
+                            } else { // 后续列, LOGO在前
+                                if ((51.5 / logoHeight) * logoWidth * 2.83464567f < intervalPercent * (lineWidth - 10) - 2.83464567f) { // 高度为51.5时, 宽度没有超过间隔 
+                                    float logoWidthModified = (float) (51.5 / logoHeight * logoWidth) * 2.83464567f; // 按照高度调整宽度
+                                    adLogo.setWidth(logoWidthModified);
+                                    adLogo.setHeight((float) 51.5 * 2.83464567f);
+                                    if (direction.equals("left")) {
+                                        adLogo.setFixedPosition((float) xChinese - logoWidthModified - 5 * 2.83464567f, (float) yEnglish + 2.83464567f);
+                                    } else {
+                                        adLogo.setFixedPosition((float) xChinese + textWidth + 5 * 2.83464567f, (float) yEnglish + 2.83464567f);
+                                    }
+                                } else { // 扁、宽图
+                                    float logoWidthModified = (float) (intervalPercent * (lineWidth - 10) - 10 * 2.83464567f);
+                                    float logoHeightModified = (float) (logoWidthModified / 2.83464567f / logoWidth * logoHeight) * 2.83464567f;
+                                    adLogo.setWidth(logoWidthModified);
+                                    adLogo.setHeight(logoHeightModified); // 按照宽度调整高度
+                                    if (direction.equals("left")) {
+                                        adLogo.setFixedPosition((float) xChinese - logoWidthModified - 5 * 2.83464567f, (float) yEnglish + (54 * 2.83464567f - logoHeightModified) / 2);
+                                    } else {
+                                        adLogo.setFixedPosition((float) xChinese + textWidth + 5 * 2.83464567f, (float) yEnglish + (54 * 2.83464567f - logoHeightModified) / 2);
+                                    }
+                                }
+                            }
+                        }
+
+                        document.add(adLogo);
+                    } catch (FileNotFoundException e) {
+                        System.err.println(e.getMessage());
+                    } catch (IOException e) {
+                        System.err.println(e.getMessage());
+                    }
+                }
+
+                // 中文输出
+                canvas4.beginText();
+                canvas4.setFontAndSize(heiTi, 100);
+                canvas4.setCharacterSpacing(chineseSpace);
+                canvas4.setTextRenderingMode(PdfCanvasConstants.TextRenderingMode.FILL_STROKE);
+                canvas4.setLineWidth(0.21f);
+                canvas4.setStrokeColor(black);
+                canvas4.setFillColor(black);
+
+                canvas4.saveState();
+                canvas4.setTextMatrix((float) scaleChinese, 0, 0, 1, 0, 0);
+
+                canvas4.moveText(xChinese / scaleChinese, yChinese); //设置文本的起始位置
+                canvas4.showText(element[0]);
+                yChinese -= interval;
+                canvas4.endText();
+
+                // 英文输出
+                canvas5.beginText();
+                canvas5.setFontAndSize(arial, 66);
+                canvas5.setCharacterSpacing(0);
+                canvas5.setTextRenderingMode(PdfCanvasConstants.TextRenderingMode.FILL_STROKE);
+                canvas5.setLineWidth(0.21f);
+                canvas5.setStrokeColor(black);
+                canvas5.setFillColor(black);
+
+                canvas5.saveState();
+                canvas5.setTextMatrix((float) scaleEnglish, 0, 0, 1, 0, 0);
+
+                canvas5.moveText(xEnglish / scaleEnglish, yEnglish); //设置文本的起始位置
                 canvas5.showText(element[1]);
                 yEnglish -= interval;
                 canvas5.endText();
@@ -460,103 +616,78 @@ public class PaidArea {
                 }
 
                 for (String element : facilityInfo.get(i)) {
-                    if (element.equals("卫生间")) {
-                        try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_toilet.pdf")) {
-                            PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
-                            PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                            srcPdfDocument.close();
-
-                            canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                    switch (element) {
+                        case "卫生间" -> {
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_toilet.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                            }
+                            nextInfoX2 += iconWidth2 + iconInterval2;
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_wheelchair_left.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                            }
                         }
-                        nextInfoX2 += iconWidth2 + iconInterval2;
-
-                        try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_wheelchair_left.pdf")) {
-                            PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
-                            PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                            srcPdfDocument.close();
-
-                            canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                        case "母婴室" -> {
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_nursing.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                            }
                         }
-                    } else if (element.equals("母婴室")) {
-                        try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_nursing.pdf")) {
-                            PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
-                            PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                            srcPdfDocument.close();
-
-                            canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                        case "垂梯" -> {
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_elevator.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                            }
+                            nextInfoX2 += iconWidth2 + iconInterval2;
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_wheelchair_left.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                            }
                         }
-                    } else if (element.equals("垂梯")) {
-                        try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_elevator.pdf")) {
-                            PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
-                            PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                            srcPdfDocument.close();
-
-                            canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                        case "国铁" -> {
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_railway.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                            }
                         }
-                        nextInfoX2 += iconWidth2 + iconInterval2;
-
-                        try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_wheelchair_left.pdf")) {
-                            PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
-                            PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                            srcPdfDocument.close();
-
-                            canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                        case "长途客运" -> {
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_coach.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                            }
                         }
-                    } else if (element.equals("国铁")) {
-                        try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_railway.pdf")) {
-                            PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
-                            PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                            srcPdfDocument.close();
-
-                            canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                        case "机场巴士" -> {
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_airportbus.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                            }
                         }
-                    } else if (element.equals("长途客运")) {
-                        try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_coach.pdf")) {
-                            PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
-                            PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                            srcPdfDocument.close();
-
-                            canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                        case "公交" -> {
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_bus.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                            }
                         }
-                    } else if (element.equals("机场巴士")) {
-                        try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_airportbus.pdf")) {
-                            PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
-                            PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                            srcPdfDocument.close();
-
-                            canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                        case "停车场" -> {
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_parking.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                            }
                         }
-                    } else if (element.equals("公交")) {
-                        try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_bus.pdf")) {
-                            PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
-                            PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                            srcPdfDocument.close();
-
-                            canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                        case "出租车" -> {
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_taxi.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                            }
                         }
-                    } else if (element.equals("停车场")) {
-                        try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_parking.pdf")) {
-                            PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
-                            PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                            srcPdfDocument.close();
-
-                            canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                        case "网约车" -> {
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_ehailing.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                            }
                         }
-                    } else if (element.equals("出租车")) {
-                        try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_taxi.pdf")) {
-                            PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
-                            PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                            srcPdfDocument.close();
-
-                            canvas8.addXObject(pageXObject, nextInfoX2, 0);
-                        }
-                    } else if (element.equals("网约车")) {
-                        try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_ehailing.pdf")) {
-                            PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
-                            PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                            srcPdfDocument.close();
-
-                            canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                        default -> {
                         }
                     }
 
@@ -569,7 +700,7 @@ public class PaidArea {
                     if (index2 >= publicTransport && index2 < facilityInfo.get(i).size()) {//只有最后一个公共交通设施加竖线
                         //竖线
                         canvas8.saveState()
-                                .setFillColor(backgroundColor)
+                                .setFillColor(black)
                                 .rectangle(nextInfoX2, 0, 1.59 * 2.83464567f, iconWidth2)
                                 .fill()
                                 .restoreState();
@@ -608,141 +739,106 @@ public class PaidArea {
 
                 for (int n = facilityInfo.get(i).size() - 1; n >= 0; n--) {
                     String element = facilityInfo.get(i).get(n);
-                    if (element.equals("卫生间")) {
-                        if (arrowType == false) {
-                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_toilet.pdf")) {
-                                PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
-                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                                srcPdfDocument.close();
+                    switch (element) {
+                        case "卫生间" -> {
+                            if (arrowType == false) {
+                                try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_toilet.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                    PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                    canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                                }
+                                nextInfoX2 += iconWidth2 + iconInterval2;
 
-                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                                try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_wheelchair_left.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                    PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                    canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                                }
+                            } else {
+                                try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_wheelchair_right.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                    PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                    canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                                }
+                                nextInfoX2 += iconWidth2 + iconInterval2;
+
+                                try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_toilet.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                    PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                    canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                                }
                             }
-                            nextInfoX2 += iconWidth2 + iconInterval2;
-
-                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_wheelchair_left.pdf")) {
-                                PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
+                        }
+                        case "母婴室" -> {
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_nursing.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
                                 PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                                srcPdfDocument.close();
-
-                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
-                            }
-                        } else {
-                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_wheelchair_right.pdf")) {
-                                PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
-                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                                srcPdfDocument.close();
-
-                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
-                            }
-                            nextInfoX2 += iconWidth2 + iconInterval2;
-
-                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_toilet.pdf")) {
-                                PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
-                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                                srcPdfDocument.close();
-
                                 canvas8.addXObject(pageXObject, nextInfoX2, 0);
                             }
                         }
-                    } else if (element.equals("母婴室")) {
-                        try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_nursing.pdf")) {
-                            PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
-                            PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                            srcPdfDocument.close();
+                        case "垂梯" -> {
+                            if (arrowType == false) {
+                                try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_elevator.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                    PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                    canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                                }
+                                nextInfoX2 += iconWidth2 + iconInterval2;
 
-                            canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                                try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_wheelchair_left.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                    PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                    canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                                }
+                            } else {
+                                try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_wheelchair_right.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                    PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                    canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                                }
+                                nextInfoX2 += iconWidth2 + iconInterval2;
+
+                                try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_elevator.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                    PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                    canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                                }
+                            }
                         }
-                    } else if (element.equals("垂梯")) {
-                        if (arrowType == false) {
-                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_elevator.pdf")) {
-                                PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
+                        case "国铁" -> {
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_railway.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
                                 PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                                srcPdfDocument.close();
-
-                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
-                            }
-                            nextInfoX2 += iconWidth2 + iconInterval2;
-
-                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_wheelchair_left.pdf")) {
-                                PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
-                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                                srcPdfDocument.close();
-
-                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
-                            }
-                        } else {
-                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_wheelchair_right.pdf")) {
-                                PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
-                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                                srcPdfDocument.close();
-
-                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
-                            }
-                            nextInfoX2 += iconWidth2 + iconInterval2;
-
-                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_elevator.pdf")) {
-                                PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
-                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                                srcPdfDocument.close();
-
                                 canvas8.addXObject(pageXObject, nextInfoX2, 0);
                             }
                         }
-                    } else if (element.equals("国铁")) {
-                        try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_railway.pdf")) {
-                            PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
-                            PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                            srcPdfDocument.close();
-
-                            canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                        case "长途客运" -> {
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_coach.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                            }
                         }
-                    } else if (element.equals("长途客运")) {
-                        try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_coach.pdf")) {
-                            PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
-                            PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                            srcPdfDocument.close();
-
-                            canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                        case "机场巴士" -> {
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_airportbus.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                            }
                         }
-                    } else if (element.equals("机场巴士")) {
-                        try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_airportbus.pdf")) {
-                            PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
-                            PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                            srcPdfDocument.close();
-
-                            canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                        case "公交" -> {
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_bus.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                            }
                         }
-                    } else if (element.equals("公交")) {
-                        try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_bus.pdf")) {
-                            PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
-                            PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                            srcPdfDocument.close();
-
-                            canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                        case "停车场" -> {
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_parking.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                            }
                         }
-                    } else if (element.equals("停车场")) {
-                        try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_parking.pdf")) {
-                            PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
-                            PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                            srcPdfDocument.close();
-
-                            canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                        case "出租车" -> {
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_taxi.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                            }
                         }
-                    } else if (element.equals("出租车")) {
-                        try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_taxi.pdf")) {
-                            PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
-                            PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                            srcPdfDocument.close();
-
-                            canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                        case "网约车" -> {
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_ehailing.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                            }
                         }
-                    } else if (element.equals("网约车")) {
-                        try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_ehailing.pdf")) {
-                            PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
-                            PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                            srcPdfDocument.close();
-
-                            canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                        default -> {
                         }
                     }
 
@@ -755,7 +851,7 @@ public class PaidArea {
                     if (index2 <= (facilityInfo.get(i).size() - publicTransport) && index2 < facilityInfo.get(i).size()) {//只有最后一个公共交通设施加竖线
                         //竖线
                         canvas8.saveState()
-                                .setFillColor(backgroundColor)
+                                .setFillColor(black)
                                 .rectangle(nextInfoX2, 0, 1.59 * 2.83464567f, iconWidth2)
                                 .fill()
                                 .restoreState();
@@ -793,10 +889,9 @@ public class PaidArea {
 
         backgroundColor = new DeviceCmyk(90, 0, 100, 0);
         PdfFormXObject pageXExit;
-        try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/exit.pdf")) {
-            PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
+        // 白色出字
+        try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/exit.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
             pageXExit = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-            srcPdfDocument.close();
         }
         if (arrowType == false) { //无箭头
             if (direction.equals("right")) { //右对齐
@@ -829,10 +924,8 @@ public class PaidArea {
             PdfCanvas canvas2 = new PdfCanvas(pdfDocument.getFirstPage());
             float yExit = (float) (((topsBottom / 2.83464567f) + 22.164) * 2.83464567f);
             if (direction.equals("right")) { //右对齐 右箭头
-                try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/arrow_right.pdf")) {
-                    PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
+                try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/arrow_right.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
                     pageXArrow = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                    srcPdfDocument.close();
                 }
                 x = starterX + (float) (((pageSizeX / 2.83464567f) - 20.211 - 88.173) * 2.83464567f);
                 canvas.saveState()
@@ -842,10 +935,8 @@ public class PaidArea {
                         .restoreState();
                 canvas2.addXObject(pageXExit, (float) (((x / 2.83464567f) - 20.211 - 128.5 + 32.89) * 2.83464567f), yExit);
             } else { //左对齐 左箭头
-                try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/arrow_left.pdf")) {
-                    PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
+                try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/arrow_left.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
                     pageXArrow = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                    srcPdfDocument.close();
                 }
                 x = starterX + (float) (22.814 * 2.83464567f);
                 canvas.saveState()
@@ -859,11 +950,8 @@ public class PaidArea {
         }
 
         //底部LOGO
-        try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/logo.pdf")) {
-            PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
+        try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/logo.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
             PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-            srcPdfDocument.close();
-
             canvas.addXObject(pageXObject, starterX + (float) (pageSizeX - (129.4 * 2.83464567f)) / 2, starterY + (float) 7.117 * 2.83464567f);
         }
 
@@ -873,9 +961,8 @@ public class PaidArea {
         canvas.setTextRenderingMode(PdfCanvasConstants.TextRenderingMode.FILL_STROKE);
         canvas.setLineWidth(0.287f);
         canvas.setCharacterSpacing(0);
-        backgroundColor = new DeviceCmyk(0, 0, 0, 100);
-        canvas.setStrokeColor(backgroundColor);
-        canvas.setFillColor(backgroundColor);
+        canvas.setStrokeColor(black);
+        canvas.setFillColor(black);
         if (direction.equals("left")) { //左对齐
             if (arrowType == false) {
                 canvas.moveText(starterX + 155.801 * 2.83464567f, starterY + pageSizeY - 103.458 * 2.83464567f); //设置文本的起始位置
@@ -934,195 +1021,179 @@ public class PaidArea {
         int index = 1;
 
         for (String[] element : facilityInfoBottom) {
-            if (element[0].equals("卫生间")) {
-                try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/s_paid_toilet.pdf")) {
-                    PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
-                    PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                    srcPdfDocument.close();
-
-                    canvas7.addXObject(pageXObject, nextInfoX, infoYStarter);
-                }
-                nextInfoX += iconWidth + iconInterval;
-
-                try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/s_paid_wheelchair.pdf")) {
-                    PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
-                    PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                    srcPdfDocument.close();
-
-                    canvas7.addXObject(pageXObject, nextInfoX, infoYStarter);
-                }
-                nextInfoX += iconWidth + iconTextInterval;
-
-                canvas7.beginText();
-                canvas7.setFontAndSize(heiTi, 69);
-                canvas7.setTextRenderingMode(PdfCanvasConstants.TextRenderingMode.FILL_STROKE);
-                canvas7.setLineWidth(0.5f);
-                backgroundColor = new DeviceCmyk(0, 0, 0, 100);
-                canvas7.setStrokeColor(backgroundColor);
-                canvas7.setFillColor(backgroundColor);
-                canvas7.setCharacterSpacing((float) spacing);
-                canvas7.moveText(nextInfoX, infoYStarterUpText); //设置文本的起始位置
-                canvas7.showText("卫生间");
-                canvas7.endText();
-
-                canvas7.beginText();
-                canvas7.moveText(nextInfoX, infoYStarterDownText); //设置文本的起始位置
-                canvas7.showText("位于");
-                canvas7.endText();
-
-                nextInfoX += heiTi.getWidth("位于", 69) + spacing * ("位于".length() - 1) + spacing + 1 * 2.83464567f;
-
-                String place = element[1]; //"A口/B口通道"
-
-                // 将字符串转换为字符数组
-                char[] charArray = place.toCharArray();
-
-                for (char c : charArray) {
-                    canvas7.beginText();
-                    if (Character.isDigit(c)) {
-                        nextInfoX -= (0.5 * spacing);
+            switch (element[0]) {
+                case "卫生间" -> {
+                    try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/s_paid_toilet.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                        PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                        canvas7.addXObject(pageXObject, nextInfoX, infoYStarter);
                     }
+                    nextInfoX += iconWidth + iconInterval;
+                    try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/s_paid_wheelchair.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                        PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                        canvas7.addXObject(pageXObject, nextInfoX, infoYStarter);
+                    }
+                    nextInfoX += iconWidth + iconTextInterval;
+
+                    canvas7.beginText();
+                    canvas7.setFontAndSize(heiTi, 69);
+                    canvas7.setTextRenderingMode(PdfCanvasConstants.TextRenderingMode.FILL_STROKE);
+                    canvas7.setLineWidth(0.5f);
+                    canvas7.setStrokeColor(black);
+                    canvas7.setFillColor(black);
+                    canvas7.setCharacterSpacing((float) spacing);
+                    canvas7.moveText(nextInfoX, infoYStarterUpText); //设置文本的起始位置
+                    canvas7.showText("卫生间");
+                    canvas7.endText();
+
+                    canvas7.beginText();
                     canvas7.moveText(nextInfoX, infoYStarterDownText); //设置文本的起始位置
-                    if (String.valueOf(c).matches("[A-Z]") || String.valueOf(c).equals("/")) {
-                        canvas7.setFontAndSize(arial, 69);
-                        nextInfoX += arial.getWidth(String.valueOf(c), 69) + spacing;
-                    } else if (Character.isDigit(c)) {
-                        canvas7.setFontAndSize(arial, 45);
-                        nextInfoX += arial.getWidth(String.valueOf(c), 45) + spacing;
-                    } else {
-                        canvas7.setFontAndSize(heiTi, 69);
-                        nextInfoX += heiTi.getWidth(String.valueOf(c), 69) + spacing;
-                    }
-                    canvas7.showText(String.valueOf(c));
+                    canvas7.showText("位于");
                     canvas7.endText();
-                }
-            } else if (element[0].equals("母婴室")) {
-                try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/s_paid_nursing.pdf")) {
-                    PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
-                    PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                    srcPdfDocument.close();
 
-                    canvas7.addXObject(pageXObject, nextInfoX, infoYStarter);
-                }
-                nextInfoX += iconWidth + iconTextInterval;
+                    nextInfoX += heiTi.getWidth("位于", 69) + spacing * ("位于".length() - 1) + spacing + 1 * 2.83464567f;
 
-                canvas7.beginText();
-                canvas7.setFontAndSize(heiTi, 69);
-                canvas7.setTextRenderingMode(PdfCanvasConstants.TextRenderingMode.FILL_STROKE);
-                canvas7.setLineWidth(0.5f);
-                backgroundColor = new DeviceCmyk(0, 0, 0, 100);
-                canvas7.setStrokeColor(backgroundColor);
-                canvas7.setFillColor(backgroundColor);
-                canvas7.setCharacterSpacing((float) spacing);
-                canvas7.moveText(nextInfoX, infoYStarterUpText); //设置文本的起始位置
-                canvas7.showText("母婴室");
-                canvas7.endText();
+                    String place = element[1]; //"A口/B口通道"
 
-                canvas7.beginText();
-                canvas7.moveText(nextInfoX, infoYStarterDownText); //设置文本的起始位置
-                canvas7.showText("位于");
-                canvas7.endText();
+                    // 将字符串转换为字符数组
+                    char[] charArray = place.toCharArray();
 
-                nextInfoX += heiTi.getWidth("位于", 69) + spacing * ("位于".length() - 1) + spacing + 1 * 2.83464567f;
-
-                String place = element[1]; //"A口/B口通道"
-
-                //将字符串转换为字符数组
-                char[] charArray = place.toCharArray();
-
-                for (char c : charArray) {
-                    canvas7.beginText();
-                    if (Character.isDigit(c)) {
-                        nextInfoX -= (0.5 * spacing);
+                    for (char c : charArray) {
+                        canvas7.beginText();
+                        if (Character.isDigit(c)) {
+                            nextInfoX -= (0.5 * spacing);
+                        }
+                        canvas7.moveText(nextInfoX, infoYStarterDownText); //设置文本的起始位置
+                        if (String.valueOf(c).matches("[A-Z]") || String.valueOf(c).equals("/")) {
+                            canvas7.setFontAndSize(arial, 69);
+                            nextInfoX += arial.getWidth(String.valueOf(c), 69) + spacing;
+                        } else if (Character.isDigit(c)) {
+                            canvas7.setFontAndSize(arial, 45);
+                            nextInfoX += arial.getWidth(String.valueOf(c), 45) + spacing;
+                        } else {
+                            canvas7.setFontAndSize(heiTi, 69);
+                            nextInfoX += heiTi.getWidth(String.valueOf(c), 69) + spacing;
+                        }
+                        canvas7.showText(String.valueOf(c));
+                        canvas7.endText();
                     }
+                }
+                case "母婴室" -> {
+                    try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/s_paid_nursing.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                        PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                        canvas7.addXObject(pageXObject, nextInfoX, infoYStarter);
+                    }
+                    nextInfoX += iconWidth + iconTextInterval;
+
+                    canvas7.beginText();
+                    canvas7.setFontAndSize(heiTi, 69);
+                    canvas7.setTextRenderingMode(PdfCanvasConstants.TextRenderingMode.FILL_STROKE);
+                    canvas7.setLineWidth(0.5f);
+                    canvas7.setStrokeColor(black);
+                    canvas7.setFillColor(black);
+                    canvas7.setCharacterSpacing((float) spacing);
+                    canvas7.moveText(nextInfoX, infoYStarterUpText); //设置文本的起始位置
+                    canvas7.showText("母婴室");
+                    canvas7.endText();
+
+                    canvas7.beginText();
                     canvas7.moveText(nextInfoX, infoYStarterDownText); //设置文本的起始位置
-                    if (String.valueOf(c).matches("[A-Z]") || String.valueOf(c).equals("/")) {
-                        canvas7.setFontAndSize(arial, 69);
-                        nextInfoX += arial.getWidth(String.valueOf(c), 69) + spacing;
-                    } else if (Character.isDigit(c)) {
-                        canvas7.setFontAndSize(arial, 45);
-                        nextInfoX += arial.getWidth(String.valueOf(c), 45) + spacing;
-                    } else {
-                        canvas7.setFontAndSize(heiTi, 69);
-                        nextInfoX += heiTi.getWidth(String.valueOf(c), 69) + spacing;
-                    }
-                    canvas7.showText(String.valueOf(c));
+                    canvas7.showText("位于");
                     canvas7.endText();
+
+                    nextInfoX += heiTi.getWidth("位于", 69) + spacing * ("位于".length() - 1) + spacing + 1 * 2.83464567f;
+                    String place = element[1]; //"A口/B口通道"
+
+                    //将字符串转换为字符数组
+                    char[] charArray = place.toCharArray();
+                    for (char c : charArray) {
+                        canvas7.beginText();
+                        if (Character.isDigit(c)) {
+                            nextInfoX -= (0.5 * spacing);
+                        }
+                        canvas7.moveText(nextInfoX, infoYStarterDownText); //设置文本的起始位置
+                        if (String.valueOf(c).matches("[A-Z]") || String.valueOf(c).equals("/")) {
+                            canvas7.setFontAndSize(arial, 69);
+                            nextInfoX += arial.getWidth(String.valueOf(c), 69) + spacing;
+                        } else if (Character.isDigit(c)) {
+                            canvas7.setFontAndSize(arial, 45);
+                            nextInfoX += arial.getWidth(String.valueOf(c), 45) + spacing;
+                        } else {
+                            canvas7.setFontAndSize(heiTi, 69);
+                            nextInfoX += heiTi.getWidth(String.valueOf(c), 69) + spacing;
+                        }
+                        canvas7.showText(String.valueOf(c));
+                        canvas7.endText();
+                    }
                 }
-            } else if (element[0].equals("电梯(站厅-地面)")) {
-                try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/s_paid_elevator.pdf")) {
-                    PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
-                    PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                    srcPdfDocument.close();
+                case "电梯(站厅-地面)" -> {
+                    try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/s_paid_elevator.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                        PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                        canvas7.addXObject(pageXObject, nextInfoX, infoYStarter);
+                    }
+                    nextInfoX += iconWidth + iconInterval;
+                    try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/s_paid_wheelchair.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                        PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                        canvas7.addXObject(pageXObject, nextInfoX, infoYStarter);
+                    }
+                    nextInfoX += iconWidth + iconTextInterval;
 
-                    canvas7.addXObject(pageXObject, nextInfoX, infoYStarter);
-                }
-                nextInfoX += iconWidth + iconInterval;
-
-                try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/s_paid_wheelchair.pdf")) {
-                    PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon));
-                    PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                    srcPdfDocument.close();
-
-                    canvas7.addXObject(pageXObject, nextInfoX, infoYStarter);
-                }
-                nextInfoX += iconWidth + iconTextInterval;
-
-                canvas7.beginText();
-                canvas7.setFontAndSize(heiTi, 69);
-                canvas7.setTextRenderingMode(PdfCanvasConstants.TextRenderingMode.FILL_STROKE);
-                canvas7.setLineWidth(0.5f);
-                backgroundColor = new DeviceCmyk(0, 0, 0, 100);
-                canvas7.setStrokeColor(backgroundColor);
-                canvas7.setFillColor(backgroundColor);
-                canvas7.setCharacterSpacing((float) spacing);
-                canvas7.moveText(nextInfoX, infoYStarterUpText); //设置文本的起始位置
-                canvas7.showText("电梯(站厅-地面)");
-                canvas7.endText();
-
-                canvas7.beginText();
-                canvas7.moveText(nextInfoX, infoYStarterDownText); //设置文本的起始位置
-                canvas7.showText("位于");
-                canvas7.endText();
-
-                final float tempWidthUp = heiTi.getWidth("电梯(站厅-地面)", 69) + spacing * ("电梯(站厅-地面)".length() - 2);//此处-2因为括号会多占空位 因此少加一个space
-                float tempWidthDown = heiTi.getWidth("位于", 69) + spacing * ("位于".length() - 1) + spacing + 1 * 2.83464567f;
-                float tempNextInfoX = nextInfoX + heiTi.getWidth("位于", 69) + spacing * ("位于".length() - 1) + spacing + 1 * 2.83464567f;
-
-                String place = element[1]; //"A口/B口通道"
-
-                //将字符串转换为字符数组
-                char[] charArray = place.toCharArray();
-
-                for (char c : charArray) {
                     canvas7.beginText();
-                    if (Character.isDigit(c)) {
-                        tempNextInfoX -= 0.5 * spacing;
-                        tempWidthDown -= 0.5 * spacing;
-                    }
-                    canvas7.moveText(tempNextInfoX, infoYStarterDownText); //设置文本的起始位置
-                    if (String.valueOf(c).matches("[A-Z]") || String.valueOf(c).equals("/")) {
-                        canvas7.setFontAndSize(arial, 69);
-                        tempNextInfoX += arial.getWidth(String.valueOf(c), 69) + spacing;
-                        tempWidthDown += arial.getWidth(String.valueOf(c), 69) + spacing;
-                    } else if (Character.isDigit(c)) {
-                        canvas7.setFontAndSize(arial, 45);
-                        tempNextInfoX += arial.getWidth(String.valueOf(c), 45) + spacing;
-                        tempWidthDown += arial.getWidth(String.valueOf(c), 45) + spacing;
-                    } else {
-                        canvas7.setFontAndSize(heiTi, 69);
-                        tempNextInfoX += heiTi.getWidth(String.valueOf(c), 69) + spacing;
-                        tempWidthDown += heiTi.getWidth(String.valueOf(c), 69) + spacing;
-                    }
-                    canvas7.showText(String.valueOf(c));
+                    canvas7.setFontAndSize(heiTi, 69);
+                    canvas7.setTextRenderingMode(PdfCanvasConstants.TextRenderingMode.FILL_STROKE);
+                    canvas7.setLineWidth(0.5f);
+                    canvas7.setStrokeColor(black);
+                    canvas7.setFillColor(black);
+                    canvas7.setCharacterSpacing((float) spacing);
+                    canvas7.moveText(nextInfoX, infoYStarterUpText); //设置文本的起始位置
+                    canvas7.showText("电梯(站厅-地面)");
                     canvas7.endText();
-                }
 
-                if (tempWidthUp > tempWidthDown) { //判断第一行文字和第二行文字哪个更长 以长的为准
-                    //nextInfoX += tempWidthUp + iconTextInterval + 3 * 2.83464567f;
-                    nextInfoX += tempWidthUp;
-                } else {
-                    nextInfoX = tempNextInfoX;
+                    canvas7.beginText();
+                    canvas7.moveText(nextInfoX, infoYStarterDownText); //设置文本的起始位置
+                    canvas7.showText("位于");
+                    canvas7.endText();
+
+                    final float tempWidthUp = heiTi.getWidth("电梯(站厅-地面)", 69) + spacing * ("电梯(站厅-地面)".length() - 2);//此处-2因为括号会多占空位 因此少加一个space
+                    float tempWidthDown = heiTi.getWidth("位于", 69) + spacing * ("位于".length() - 1) + spacing + 1 * 2.83464567f;
+                    float tempNextInfoX = nextInfoX + heiTi.getWidth("位于", 69) + spacing * ("位于".length() - 1) + spacing + 1 * 2.83464567f;
+
+                    String place = element[1]; //"A口/B口通道"
+
+                    //将字符串转换为字符数组
+                    char[] charArray = place.toCharArray();
+
+                    for (char c : charArray) {
+                        canvas7.beginText();
+                        if (Character.isDigit(c)) {
+                            tempNextInfoX -= 0.5 * spacing;
+                            tempWidthDown -= 0.5 * spacing;
+                        }
+                        canvas7.moveText(tempNextInfoX, infoYStarterDownText); //设置文本的起始位置
+                        if (String.valueOf(c).matches("[A-Z]") || String.valueOf(c).equals("/")) {
+                            canvas7.setFontAndSize(arial, 69);
+                            tempNextInfoX += arial.getWidth(String.valueOf(c), 69) + spacing;
+                            tempWidthDown += arial.getWidth(String.valueOf(c), 69) + spacing;
+                        } else if (Character.isDigit(c)) {
+                            canvas7.setFontAndSize(arial, 45);
+                            tempNextInfoX += arial.getWidth(String.valueOf(c), 45) + spacing;
+                            tempWidthDown += arial.getWidth(String.valueOf(c), 45) + spacing;
+                        } else {
+                            canvas7.setFontAndSize(heiTi, 69);
+                            tempNextInfoX += heiTi.getWidth(String.valueOf(c), 69) + spacing;
+                            tempWidthDown += heiTi.getWidth(String.valueOf(c), 69) + spacing;
+                        }
+                        canvas7.showText(String.valueOf(c));
+                        canvas7.endText();
+                    }
+
+                    if (tempWidthUp > tempWidthDown) { //判断第一行文字和第二行文字哪个更长 以长的为准
+                        //nextInfoX += tempWidthUp + iconTextInterval + 3 * 2.83464567f;
+                        nextInfoX += tempWidthUp;
+                    } else {
+                        nextInfoX = tempNextInfoX;
+                    }
+                }
+                default -> {
                 }
             }
             nextInfoX -= spacing;
@@ -1132,7 +1203,7 @@ public class PaidArea {
 
                 //竖线
                 canvas7.saveState()
-                        .setFillColor(backgroundColor)
+                        .setFillColor(black)
                         .rectangle(nextInfoX, infoYStarter, 1.279 * 2.83464567f, iconWidth)
                         .fill()
                         .restoreState();
@@ -1147,15 +1218,9 @@ public class PaidArea {
         float scale = maxInfoX / nextInfoX;
         float correctX = (float) 28.641 * 2.83464567f;
         float correctY;
-        System.out.println(bottomTop / 2.83464567f);
-        System.out.println(lastLineY / 2.83464567f);
-        System.out.println((lastLineY - bottomTop) / 2.83464567f);
-        System.out.println((lastLineY - bottomTop) * (float) 0.15183 / 2.83464567f);
         if (scale < 1) {
-            //correctY = bottomTop + (lastLineY - bottomTop) / 2 - (lastLineY - bottomTop) * (float) 0.17387 + (iconWidth - iconWidth * scale) / 2;
             correctY = bottomTop + (lastLineY - bottomTop) * (float) 0.5569 - iconWidth / 2 + (iconWidth - iconWidth * scale) / 2;
         } else {
-            //correctY = bottomTop + (lastLineY - bottomTop) / 2 - (lastLineY - bottomTop) * (float) 0.17387;
             correctY = bottomTop + (lastLineY - bottomTop) * (float) 0.5569 - iconWidth / 2;
         }
         PdfCanvas finalCanvas = new PdfCanvas(page);
@@ -1181,8 +1246,7 @@ public class PaidArea {
         PdfCanvas canvas6 = new PdfCanvas(page);
         canvas6.beginText();
         canvas6.setFontAndSize(heiTi, 21);
-        backgroundColor = new DeviceCmyk(0, 0, 0, 100);
-        canvas6.setFillColor(backgroundColor);
+        canvas6.setFillColor(black);
         canvas6.setCharacterSpacing((float) 1.8);
         canvas6.moveText(qrBaseX, qrBaseY - 11.093 * 2.83464567f); //设置文本的起始位置
         canvas6.showText("扫码获取实时");
@@ -1212,8 +1276,6 @@ public class PaidArea {
                 .rectangle(starterX, starterY, pageSizeX, pageSizeY)
                 .stroke()
                 .restoreState();
-
-        //document.close();
     }
 
     public static void swap(ArrayList<String> list) {
@@ -1234,7 +1296,7 @@ public class PaidArea {
         replacedInput = replacedInput.replace("’", "'");
         return replacedInput;
     }
-    
+
     public static String[] getStationNumber(String stationName) {
         // 创建车站名称到数字的映射
         Map<String, String> stationMap = new HashMap<>();
@@ -1288,7 +1350,7 @@ public class PaidArea {
                 return "right";
             }
         }
-        return "温馨提示：尚未指定对齐方向，已自动向左对齐。"; // 如果没有检测到特定字符，则返回空字符串
+        return "温馨提示：尚未指定对齐方向，已默认向左对齐。"; // 如果没有检测到特定字符，则返回空字符串
     }
 
     public static String findEnglishLetters(String input) {
@@ -1333,7 +1395,7 @@ public class PaidArea {
         // 定义设施名称的关键词和对应的归类名称
         Map<String, String> facilityKeywords = new HashMap<>();
         facilityKeywords.put("电梯(站厅-地面)", "电梯|垂梯|电梯(站厅-地面)|垂梯(站厅-地面)|电梯（站厅-地面）|垂梯（站厅-地面）");
-        facilityKeywords.put("卫生间", "卫生间");
+        facilityKeywords.put("卫生间", "卫生间|洗手间");
         facilityKeywords.put("母婴室", "母婴室");
 
         // 设施的顺序
@@ -1389,7 +1451,7 @@ public class PaidArea {
         return 1;
     }
 
-    public static ArrayList<Integer> parseNumLines(String input) {
+    public static ArrayList<Integer> parseNumLines(String input) { // 获取每一个出入口有多少条横线
         ArrayList<Integer> list = new ArrayList<>();
         String[] parts = input.split("\\+");
 

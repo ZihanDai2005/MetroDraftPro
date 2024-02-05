@@ -14,7 +14,7 @@ import javax.swing.SwingUtilities;
  * @author daizhenjin
  *//// 自定义输出流，用于将输出重定向到文本区域
 public class CustomOutputStream extends ByteArrayOutputStream {
-        private JTextArea textArea;
+        private final JTextArea textArea;
 
         public CustomOutputStream(JTextArea textArea) {
             this.textArea = textArea;

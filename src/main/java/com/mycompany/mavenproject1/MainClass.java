@@ -210,8 +210,10 @@ public class MainClass {
                     } else {
                         titleStationName = stationName;
                     }
+                } catch (FileNotFoundException ex) {
+                    System.err.println(ex.getMessage());
                 } catch (IOException ex) {
-                    Logger.getLogger(MainClass.class.getName()).log(Level.SEVERE, null, ex);
+                    System.err.println(ex.getMessage());
                 }
 
                 PdfFont siyuanHei = null;
@@ -232,8 +234,8 @@ public class MainClass {
                 final int startRow = 2;
 
                 ArrayList<Integer> col = new ArrayList<>();
-                col.add(8);
-                col.add(11);
+                col.add(10);
+                col.add(13);
 
                 PageSize pageSize = new PageSize(4500 * 2.83464567f, 4500 * 2.83464567f);
                 pdfWriter = new PdfWriter(path, new WriterProperties().setCompressionLevel(0));
@@ -309,12 +311,12 @@ public class MainClass {
                 }
                 document.close();
             } catch (FileNotFoundException ex) {
-                Logger.getLogger(MainClass.class.getName()).log(Level.SEVERE, null, ex);
+                System.err.println(ex.getMessage());
             } finally {
                 try {
                     pdfWriter.close();
                 } catch (IOException ex) {
-                    Logger.getLogger(MainClass.class.getName()).log(Level.SEVERE, null, ex);
+                    System.err.println(ex.getMessage());
                 }
             }
         });

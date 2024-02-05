@@ -1463,7 +1463,7 @@ public class UnpaidArea {
                 return "right";
             }
         }
-        return "温馨提示：尚未指定对齐方向，已自动向左对齐。"; // 如果没有检测到特定字符，则返回空字符串
+        return "温馨提示：尚未指定对齐方向，已默认向左对齐。"; // 如果没有检测到特定字符，则返回空字符串
     }
 
     public static ArrayList<String> findFacilityInfo(String input) {
