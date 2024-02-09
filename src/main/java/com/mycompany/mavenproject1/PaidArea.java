@@ -81,9 +81,9 @@ public class PaidArea {
         Color black = new DeviceCmyk(0, 0, 0, 100);
 
         final float bottomTop = (float) 49.423 * 2.83464567f;
-        PageSize tempPageSize = new PageSize(pageSizeX, 72 * 2.83464567f);
-        String direction = ""; //初始化对齐方向
-        boolean arrowType = true; //初始化是否带箭头
+        PageSize tempPageSize = new PageSize(pageSizeX * 2, 72 * 2.83464567f);
+        String direction = ""; // 初始化对齐方向
+        boolean arrowType = true; // 初始化是否带箭头
         int colNeeded = 0;
 
         ArrayList<String> entrance = new ArrayList<>();
@@ -98,16 +98,16 @@ public class PaidArea {
             XSSFSheet sheet = workbook.getSheetAt(0);
 
             int currentCol = col;
-            //向右遍历直到空列 添加每个出入口的信息
+            // 向右遍历直到空列 添加每个出入口的信息
             while (sheet.getRow(startRow + 3).getCell(currentCol) != null && !"".equals(sheet.getRow(startRow + 3).getCell(currentCol).getStringCellValue())) {
-                //获取出入口编号并加入数组
+                // 获取出入口编号并加入数组
                 entrance.add(findEnglishLetters(sheet.getRow(startRow + 3).getCell(currentCol).getStringCellValue()));
 
-                //获取当前出入口设施 (卫生间/母婴室/垂梯)
+                // 获取当前出入口设施 (卫生间/母婴室/垂梯)
                 facilityInfo.add(findFacilityInfo(sheet.getRow(startRow + 3).getCell(currentCol).getStringCellValue()));
 
                 ArrayList<String[]> exitInfoBranch = new ArrayList<>();
-                //获取每个出入口的中英文信息
+                // 获取每个出入口的中英文信息
                 for (int row = startRow + 4; row <= startRow + 25;) {
                     XSSFCell chineseCell = sheet.getRow(row).getCell(currentCol);
                     XSSFCell englishCell = sheet.getRow(row + 1).getCell(currentCol);
@@ -123,9 +123,9 @@ public class PaidArea {
                 exitInfo.add(exitInfoBranch);
                 currentCol += 1;
             }
-            final int entranceNum = entrance.size(); //出入口数量
+            final int entranceNum = entrance.size(); // 出入口数量
 
-            //如果出入口数量>1，获取行数分配
+            // 如果出入口数量>1，获取行数分配
             if (entranceNum > 1) {
                 XSSFCell numLinesCell = sheet.getRow(startRow + 2).getCell(col + 1);
                 numLines = parseNumLines(numLinesCell.getStringCellValue());
@@ -134,16 +134,16 @@ public class PaidArea {
                 numLines.add(14);
             }
 
-            //对齐方向及是否带箭头
+            // 对齐方向及是否带箭头
             XSSFCell arrowCell = sheet.getRow(startRow + 2).getCell(col);
             direction = detectArrowDirection(arrowCell.getStringCellValue());
             arrowType = checkArrow(arrowCell.getStringCellValue());
 
-            //其他出口设施
+            // 其他出口设施
             XSSFCell bottomFacilityCell = sheet.getRow(startRow + 26).getCell(col);
             facilityInfoBottom = parseFacilityInfo(bottomFacilityCell.getStringCellValue());
 
-            //稿件排版列数
+            // 稿件排版列数
             for (int i = 0; i < exitInfo.size(); i++) {
                 int tempColNeeded = (int) Math.ceil((double) exitInfo.get(i).size() / numLines.get(i)); // 向上取整
                 if (tempColNeeded > colNeeded) {
@@ -157,7 +157,7 @@ public class PaidArea {
         }
 
         PdfCanvas canvas = new PdfCanvas(page);
-        //白色背景
+        // 白色背景
         Color backgroundColor = new DeviceCmyk(0, 0, 0, 0);
         canvas.saveState()
                 .setFillColor(backgroundColor)
@@ -165,13 +165,13 @@ public class PaidArea {
                 .fill()
                 .restoreState();
 
-        double topsBottom = starterY + pageSizeY - (128.5 * 2.83464567f); //顶部灰带的底部坐标
-        //灰色块
+        double topsBottom = starterY + pageSizeY - (128.5 * 2.83464567f); // 顶部灰带的底部坐标
+        // 灰色块
         backgroundColor = new DeviceCmyk(0, 0, 0, 10);
         canvas.saveState()
                 .setFillColor(backgroundColor)
-                .rectangle(starterX, topsBottom, pageSizeX, 128.5 * 2.83464567f) //顶部灰色快
-                .rectangle(starterX, starterY, pageSizeX, 49.423 * 2.83464567f) //底部灰色块
+                .rectangle(starterX, topsBottom, pageSizeX, 128.5 * 2.83464567f) // 顶部灰色快
+                .rectangle(starterX, starterY, pageSizeX, 49.423 * 2.83464567f) // 底部灰色块
                 .fill()
                 .restoreState();
 
@@ -186,18 +186,18 @@ public class PaidArea {
         float lastLineY = 0;
 
         for (int i = 0; i < entrance.size(); i++) {
-            //字母外框
+            // 字母外框
             PdfCanvas canvas3 = new PdfCanvas(pdfDocument.getFirstPage());
             try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/outline.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
                 PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
                 canvas3.addXObject(pageXObject, xOutline, yOutline);
             }
 
-            //出入口字母
+            // 出入口字母
             canvas3.beginText();
             canvas3.setFillColor(black);
             String currentEntrance = entrance.get(i);
-            //带角标口
+            // 带角标口
             if (currentEntrance.length() != 1) {
                 float textHeight = arialBold.getAscent(currentEntrance.substring(0, 1), 183) - arialBold.getDescent(currentEntrance.substring(0, 1), 183);
                 float textWidth = arialBold.getWidth(currentEntrance.substring(0, 1), 183);
@@ -212,29 +212,29 @@ public class PaidArea {
                 if (currentEntrance.substring(1, 2).equals("1")) {
                     tempX += 1.4 * 2.83464567f;
                 }
-                canvas3.moveText(tempX, yOutline + ((73.16 - textHeight / 2.83464567f) / 2) * 2.83464567f); //设置文本的起始位置
+                canvas3.moveText(tempX, yOutline + ((73.16 - textHeight / 2.83464567f) / 2) * 2.83464567f); // 设置文本的起始位置
                 canvas3.showText(currentEntrance.substring(0, 1));
 
                 canvas3.setFontAndSize(arialBold, 110);
-                canvas3.moveText(textWidth, 0); //设置文本的起始位置
+                canvas3.moveText(textWidth, 0); // 设置文本的起始位置
                 canvas3.showText(currentEntrance.substring(1, currentEntrance.length()));
-            } else {//不带角标口
+            } else { // 不带角标口
                 canvas3.setFontAndSize(arialBold, 200);
                 if (currentEntrance.equals("B") || currentEntrance.equals("D") || currentEntrance.equals("G")) {
                     float textHeight = arialBold.getAscent(currentEntrance, 200) - arialBold.getDescent(currentEntrance, 200);
                     float textWidth = arialBold.getWidth(currentEntrance, 200);
-                    canvas3.moveText(xOutline + (((73.16 - textWidth / 2.83464567f) / 2) + 0.8) * 2.83464567f, yOutline + ((73.16 - textHeight / 2.83464567f) / 2) * 2.83464567f); //设置文本的起始位置
+                    canvas3.moveText(xOutline + (((73.16 - textWidth / 2.83464567f) / 2) + 0.8) * 2.83464567f, yOutline + ((73.16 - textHeight / 2.83464567f) / 2) * 2.83464567f); // 设置文本的起始位置
                     canvas3.showText(currentEntrance);
                 } else {
                     float textHeight = arialBold.getAscent(currentEntrance, 200) - arialBold.getDescent(currentEntrance, 200);
                     float textWidth = arialBold.getWidth(currentEntrance, 200);
-                    canvas3.moveText(xOutline + ((73.16 - textWidth / 2.83464567f) / 2) * 2.83464567f, yOutline + ((73.16 - textHeight / 2.83464567f) / 2) * 2.83464567f); //设置文本的起始位置
+                    canvas3.moveText(xOutline + ((73.16 - textWidth / 2.83464567f) / 2) * 2.83464567f, yOutline + ((73.16 - textHeight / 2.83464567f) / 2) * 2.83464567f); // 设置文本的起始位置
                     canvas3.showText(currentEntrance);
                 }
             }
             canvas3.endText();
 
-            //横线
+            // 横线
             float tempLineY = (float) (yOutline - 92.692 * 2.83464567f);
             for (int j = 1; j <= numLines.get(i); j++) {
                 canvas.saveState()
@@ -253,7 +253,7 @@ public class PaidArea {
             int branchNumLines = numLines.get(i);
             int chineseSpace = 7;
             double intervalPercent;
-            double expandPercent = 0.1;
+            double expandPercent = 1;
             intervalPercent = switch (colNeeded) {
                 case 2 ->
                     0.1;
@@ -271,8 +271,8 @@ public class PaidArea {
             float maxWidthPercent = (float) ((1 - intervalTotalPercent) / ((colNeeded - 1) + expandPercent));
 
             for (String[] element : exitInfo.get(i)) {
-                //中文
-                //需要检查有没有改括号
+                // 中文
+                // 需要检查有没有改括号
                 PdfCanvas canvas4 = new PdfCanvas(page);
 
                 boolean ad = false;
@@ -326,7 +326,7 @@ public class PaidArea {
                     }
                 } else {
                     double firstColWidth = 33.93 * 2.83464567f + (lineWidth - 10) * maxWidthPercent * expandPercent;
-                    //每1列最后一项因为可以整除 会误判 因此加入判断如果currentRow算出的实际列数为整数 就-1
+                    // 每1列最后一项因为可以整除 会误判 因此加入判断如果currentRow算出的实际列数为整数 就-1
                     double currentRowReal = (double) currentRow / branchNumLines;
                     int intCurrentRowReal = (int) currentRowReal;
                     if (intCurrentRowReal == currentRowReal) {
@@ -339,7 +339,7 @@ public class PaidArea {
                     }
                 }
 
-                //英文
+                // 英文
                 PdfCanvas canvas5 = new PdfCanvas(page);
                 float textWidth2 = arial.getWidth(element[1], 66);
 
@@ -385,7 +385,7 @@ public class PaidArea {
                     }
                 } else {
                     double firstColWidth = 33.957 * 2.83464567f + (lineWidth - 10) * maxWidthPercent * expandPercent;
-                    //每1列最后一项因为可以整除 会误判 因此加入判断如果currentRow算出的实际列数为整数 就-1
+                    // 每1列最后一项因为可以整除 会误判 因此加入判断如果currentRow算出的实际列数为整数 就-1
                     double currentRowReal = (double) currentRow / branchNumLines;
                     int intCurrentRowReal = (int) currentRowReal;
                     if (intCurrentRowReal == currentRowReal) {
@@ -398,9 +398,9 @@ public class PaidArea {
                     }
                 }
 
-                // 广告LOGO
+                // 广告Logo
                 if (ad == true) {
-                    //获取广告LOGO图片地址
+                    // 获取广告Logo图片地址
                     String logoPath = "";
                     try {
                         File excelFile = new File("/Users/daizhenjin/Downloads/logoAddress.xlsx");
@@ -414,14 +414,27 @@ public class PaidArea {
                                 logoPath = sheet.getRow(j).getCell(1).getStringCellValue();
                             }
                         }
+                    } catch (FileNotFoundException e) {
+                        System.err.println(e.getMessage());
+                    } catch (IOException e) {
+                        System.err.println(e.getMessage());
+                    }
 
-                        File adLogoFile = new File(logoPath);
-                        ImageData imageData = ImageDataFactory.create(adLogoFile.getAbsolutePath());
-                        Image adLogo = new Image(imageData);
-                        float logoWidth = adLogo.getImageScaledWidth();
-                        float logoHeight = adLogo.getImageScaledHeight();
+                    if (logoPath.substring(logoPath.lastIndexOf('.')).contains("pdf")) { // 如果Logo是pdf格式的
+                        // 创建画布
+                        PdfCanvas canvas8 = new PdfCanvas(page);
 
-                        if (exitInfo.get(i).size() <= branchNumLines) { // 只有1列, 加在右侧
+                        // 打开源PDF文档
+                        PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(logoPath));
+                        PdfPage srcPage = srcPdfDocument.getFirstPage();
+                        // 获取Logo宽高
+                        PdfFormXObject formXObject = srcPage.copyAsFormXObject(pdfDocument);
+                        float logoWidth = srcPage.getPageSize().getWidth();
+                        float logoHeight = srcPage.getPageSize().getHeight();
+
+                        if (exitInfo.get(i).size() <= branchNumLines // 只有1列, 加在右侧
+                                || (exitInfo.get(i).size() > branchNumLines // 多列, 位于最后1列 (不能是物理意义的最后1列)
+                                && currentRow + branchNumLines > exitInfo.get(i).size())) {
                             double longerTextWidth;
                             if (textWidth > textWidth2) {
                                 longerTextWidth = textWidth;
@@ -438,12 +451,163 @@ public class PaidArea {
 
                             double remainingWidth;
                             if (direction.equals("left")) {
-                                remainingWidth = (starterX + 28.641 * 2.83464567f + (lineWidth - 10)) - (xChinese + longerTextWidth);
+                                remainingWidth = 28.641 * 2.83464567f + (lineWidth - 10) - (xChinese - starterX) - longerTextWidth;
                             } else {
                                 remainingWidth = moreLeftTextX - (starterX + 28.641 * 2.83464567f + 10);
                             }
 
-                            if ((51.5 / logoHeight) * logoWidth * 2.83464567f < remainingWidth) { // 高度为51.5时, 宽度没有超过剩余空间
+                            if ((51.5 / logoHeight) * logoWidth * 2.83464567f + 5 * 2.83464567f < remainingWidth) { // 高度为51.5时, 宽度没有超过剩余空间
+                                float logoWidthModified = (float) 51.5 * 2.83464567f / logoHeight * logoWidth;
+                                float logoScale = (float) 51.5 * 2.83464567f / logoHeight;
+                                if (direction.equals("left")) {
+                                    canvas8.addXObjectWithTransformationMatrix(formXObject, logoScale, 0, 0, logoScale, (float) (xChinese + longerTextWidth + 5 * 2.83464567f), (float) yEnglish + 2.83464567f);
+                                } else {
+                                    canvas8.addXObjectWithTransformationMatrix(formXObject, logoScale, 0, 0, logoScale, (float) moreLeftTextX - logoWidthModified - 5 * 2.83464567f, (float) yEnglish + 2.83464567f);
+                                }
+                            } else { // 扁、宽图或文字超长
+                                float logoWidthModified = (float) (intervalPercent * (lineWidth - 10));
+                                float logoHeightModified = logoWidthModified / logoWidth * logoHeight;
+                                if (logoHeightModified > 51.5 * 2.83464567f) {
+                                    logoWidthModified = (float) 51.5 * 2.83464567f / logoHeight * logoWidth;
+                                    logoHeightModified = (float) 51.5 * 2.83464567f;
+                                }
+                                float logoScale = logoWidthModified / logoWidth;
+
+                                // 修改中文压缩比例、位置
+                                // 剩余空间计算
+                                double chineseRemainingWidth;
+                                if (direction.equals("left")) {
+                                    chineseRemainingWidth = 28.641 * 2.83464567f + (lineWidth - 10) - (xChinese - starterX) - textWidth;
+                                } else {
+                                    chineseRemainingWidth = xChinese - (starterX + 28.641 * 2.83464567f + 10);
+                                }
+                                if (chineseRemainingWidth < logoWidthModified + 10 * 2.83464567f) { // 中文超长
+                                    double addScale;
+                                    if (direction.equals("left")) {
+                                        addScale = (28.641 * 2.83464567f + lineWidth - (xChinese - starterX) - logoWidthModified - 10 * 2.83464567f) / textWidth; // 横线右侧终点 - 文字左端坐标 - Logo宽度
+                                    } else {
+                                        addScale = ((xChinese + textWidth - starterX) - (28.641 * 2.83464567f + 10 * 2.83464567f) - logoWidthModified) / textWidth; // 文字右端坐标 - 横线左侧起点 - Logo宽度
+                                    }
+                                    scaleChinese *= addScale;
+                                    if (direction.equals("right")) {
+                                        double newTextWidth = textWidth * addScale; // 计算调整后的新文字长度
+                                        xChinese += textWidth - newTextWidth; // 文字x坐标加上新旧文字长度差
+                                    }
+                                }
+
+                                // 修改英文压缩比例、位置
+                                // 剩余空间计算
+                                double englishRemainingWidth;
+                                if (direction.equals("left")) {
+                                    englishRemainingWidth = 28.641 * 2.83464567f + (lineWidth - 10) - (xEnglish - starterX) - textWidth2;
+                                } else {
+                                    englishRemainingWidth = xEnglish - (starterX + 28.641 * 2.83464567f + 10);
+                                }
+                                if (englishRemainingWidth < logoWidthModified + 10 * 2.83464567f) { // 英文超长
+                                    double addScale;
+                                    if (direction.equals("left")) {
+                                        addScale = (28.641 * 2.83464567f + lineWidth - (xEnglish - starterX) - logoWidthModified - 10 * 2.83464567f) / textWidth2; // 横线右侧终点 - 文字左端坐标 - Logo宽度
+                                    } else {
+                                        addScale = ((xEnglish + textWidth2 - starterX) - (28.641 * 2.83464567f + 10 * 2.83464567f) - logoWidthModified) / textWidth2; // 文字右端坐标 - 横线左侧起点 - Logo宽度
+                                    }
+                                    scaleEnglish *= addScale;
+                                    if (direction.equals("right")) {
+                                        double newTextWidth2 = textWidth2 * addScale; // 计算调整后的新文字长度
+                                        xEnglish += textWidth2 - newTextWidth2; // 文字x坐标加上新旧文字长度差
+                                    }
+                                }
+
+                                if (direction.equals("left")) {
+                                    canvas8.addXObjectWithTransformationMatrix(formXObject, logoScale, 0, 0, logoScale, (float) (starterX + 28.641 * 2.83464567f + (lineWidth - 10) - logoWidthModified), (float) yEnglish + (54 * 2.83464567f - logoHeightModified) / 2);
+                                } else {
+                                    canvas8.addXObjectWithTransformationMatrix(formXObject, logoScale, 0, 0, logoScale, (float) (starterX + 28.641 * 2.83464567f + 10), (float) yEnglish + (54 * 2.83464567f - logoHeightModified) / 2);
+                                }
+                            }
+                        } else { // 有多列
+                            if (currentRow <= branchNumLines) { // 第1列
+                                double longerTextWidth;
+                                if (textWidth > textWidth2) {
+                                    longerTextWidth = textWidth;
+                                } else {
+                                    longerTextWidth = textWidth2;
+                                }
+                                double moreLeftTextX;
+                                if (xChinese < xEnglish) {
+                                    moreLeftTextX = xChinese;
+                                } else {
+                                    moreLeftTextX = xEnglish;
+                                }
+                                if ((51.5 / logoHeight) * logoWidth * 2.83464567f < intervalPercent * (lineWidth - 10) - 2.83464567f) { // 高度为51.5时, 宽度没有超过间隔 
+                                    float logoWidthModified = (float) 51.5 * 2.83464567f / logoHeight * logoWidth; // 按照高度调整宽度
+                                    float logoScale = (float) 51.5 * 2.83464567f / logoHeight;
+                                    if (direction.equals("left")) {
+                                        canvas8.addXObjectWithTransformationMatrix(formXObject, logoScale, 0, 0, logoScale, (float) (xChinese + longerTextWidth + 5 * 2.83464567f), (float) yEnglish + 2.83464567f);
+                                    } else {
+                                        canvas8.addXObjectWithTransformationMatrix(formXObject, logoScale, 0, 0, logoScale, (float) (moreLeftTextX - 5 * 2.83464567f - logoWidthModified), (float) yEnglish + 2.83464567f);
+                                    }
+                                } else { // 扁、宽图
+                                    float logoWidthModified = (float) (intervalPercent * (lineWidth - 10) - 10 * 2.83464567f);
+                                    float logoHeightModified = logoWidthModified / logoWidth * logoHeight;
+                                    float logoScale = logoWidthModified / logoWidth;
+                                    if (direction.equals("left")) {
+                                        canvas8.addXObjectWithTransformationMatrix(formXObject, logoScale, 0, 0, logoScale, (float) (xChinese + longerTextWidth + 5 * 2.83464567f), (float) yEnglish + (54 * 2.83464567f - logoHeightModified) / 2);
+                                    } else {
+                                        canvas8.addXObjectWithTransformationMatrix(formXObject, logoScale, 0, 0, logoScale, (float) (moreLeftTextX - 5 * 2.83464567f - logoWidthModified), (float) yEnglish + (54 * 2.83464567f - logoHeightModified) / 2);
+                                    }
+                                }
+                            } else { // 后续列, Logo在前
+                                if ((51.5 / logoHeight) * logoWidth * 2.83464567f < intervalPercent * (lineWidth - 10) - 2.83464567f) { // 高度为51.5时, 宽度没有超过间隔 
+                                    float logoWidthModified = (float) 51.5 * 2.83464567f / logoHeight * logoWidth; // 按照高度调整宽度
+                                    float logoScale = (float) 51.5 * 2.83464567f / logoHeight;
+                                    if (direction.equals("left")) {
+                                        canvas8.addXObjectWithTransformationMatrix(formXObject, logoScale, 0, 0, logoScale, (float) xChinese - logoWidthModified - 5 * 2.83464567f, (float) yEnglish + 2.83464567f);
+                                    } else {
+                                        canvas8.addXObjectWithTransformationMatrix(formXObject, logoScale, 0, 0, logoScale, (float) xChinese + textWidth + 5 * 2.83464567f, (float) yEnglish + 2.83464567f);
+                                    }
+                                } else { // 扁、宽图
+                                    float logoWidthModified = (float) (intervalPercent * (lineWidth - 10) - 10 * 2.83464567f);
+                                    float logoHeightModified = logoWidthModified / logoWidth * logoHeight;
+                                    float logoScale = logoWidthModified / logoWidth;
+                                    if (direction.equals("left")) {
+                                        canvas8.addXObjectWithTransformationMatrix(formXObject, logoScale, 0, 0, logoScale, (float) xChinese - logoWidthModified - 5 * 2.83464567f, (float) yEnglish + (54 * 2.83464567f - logoHeightModified) / 2);
+                                    } else {
+                                        canvas8.addXObjectWithTransformationMatrix(formXObject, logoScale, 0, 0, logoScale, (float) xChinese + textWidth + 5 * 2.83464567f, (float) yEnglish + (54 * 2.83464567f - logoHeightModified) / 2);
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        File adLogoFile = new File(logoPath);
+                        ImageData imageData = ImageDataFactory.create(adLogoFile.getAbsolutePath());
+                        Image adLogo = new Image(imageData);
+                        float logoWidth = adLogo.getImageScaledWidth();
+                        float logoHeight = adLogo.getImageScaledHeight();
+
+                        if (exitInfo.get(i).size() <= branchNumLines // 只有1列, 加在右侧
+                                || (exitInfo.get(i).size() > branchNumLines // 多列, 位于最后1列 (不能是物理意义的最后1列)
+                                && currentRow + branchNumLines > exitInfo.get(i).size())) {
+                            double longerTextWidth;
+                            if (textWidth > textWidth2) {
+                                longerTextWidth = textWidth;
+                            } else {
+                                longerTextWidth = textWidth2;
+                            }
+
+                            double moreLeftTextX;
+                            if (xChinese < xEnglish) {
+                                moreLeftTextX = xChinese;
+                            } else {
+                                moreLeftTextX = xEnglish;
+                            }
+
+                            double remainingWidth;
+                            if (direction.equals("left")) {
+                                remainingWidth = 28.641 * 2.83464567f + (lineWidth - 10) - (xChinese - starterX) - longerTextWidth;
+                            } else {
+                                remainingWidth = moreLeftTextX - (starterX + 28.641 * 2.83464567f + 10);
+                            }
+
+                            if ((51.5 / logoHeight) * logoWidth * 2.83464567f + 5 * 2.83464567f < remainingWidth) { // 高度为51.5时, 宽度没有超过剩余空间
                                 float logoWidthModified = (float) (51.5 / logoHeight) * logoWidth * 2.83464567f;
                                 adLogo.setWidth(logoWidthModified);
                                 adLogo.setHeight((float) 51.5 * 2.83464567f);
@@ -455,22 +619,50 @@ public class PaidArea {
                             } else { // 扁、宽图或文字超长
                                 float logoWidthModified = (float) (intervalPercent * (lineWidth - 10));
                                 float logoHeightModified = (float) (logoWidthModified / 2.83464567f / logoWidth * logoHeight) * 2.83464567f;
-                                if(logoHeightModified > 51.5 * 2.83464567f){
+                                if (logoHeightModified > 51.5 * 2.83464567f) {
                                     logoWidthModified = (float) (51.5 / logoHeight * logoWidth) * 2.83464567f;
                                     logoHeightModified = (float) 51.5 * 2.83464567f;
                                 }
                                 adLogo.setWidth(logoWidthModified);
                                 adLogo.setHeight(logoHeightModified); // 按照宽度调整高度
-                                if ((lineWidth - 10) - textWidth < logoWidthModified + 10 * 2.83464567f) { // 中文超长
-                                    double addScale = ((lineWidth - 10) - logoWidthModified - 10 * 2.83464567f) / textWidth;
+
+                                // 修改中文压缩比例、位置
+                                // 剩余空间计算
+                                double chineseRemainingWidth;
+                                if (direction.equals("left")) {
+                                    chineseRemainingWidth = 28.641 * 2.83464567f + (lineWidth - 10) - (xChinese - starterX) - textWidth;
+                                } else {
+                                    chineseRemainingWidth = xChinese - (starterX + 28.641 * 2.83464567f + 10);
+                                }
+                                if (chineseRemainingWidth < logoWidthModified + 10 * 2.83464567f) { // 中文超长
+                                    double addScale;
+                                    if (direction.equals("left")) {
+                                        addScale = (28.641 * 2.83464567f + lineWidth - (xChinese - starterX) - logoWidthModified - 10 * 2.83464567f) / textWidth; // 横线右侧终点 - 文字左端坐标 - Logo宽度
+                                    } else {
+                                        addScale = ((xChinese + textWidth - starterX) - (28.641 * 2.83464567f + 10 * 2.83464567f) - logoWidthModified) / textWidth; // 文字右端坐标 - 横线左侧起点 - Logo宽度
+                                    }
                                     scaleChinese *= addScale;
                                     if (direction.equals("right")) {
                                         double newTextWidth = textWidth * addScale; // 计算调整后的新文字长度
                                         xChinese += textWidth - newTextWidth; // 文字x坐标加上新旧文字长度差
                                     }
                                 }
-                                if ((lineWidth - 10) - textWidth2 < logoWidthModified + 10 * 2.83464567f) { // 英文超长
-                                    double addScale = ((lineWidth - 10) - logoWidthModified - 10 * 2.83464567f) / textWidth2;
+
+                                // 修改英文压缩比例、位置
+                                // 剩余空间计算
+                                double englishRemainingWidth;
+                                if (direction.equals("left")) {
+                                    englishRemainingWidth = 28.641 * 2.83464567f + (lineWidth - 10) - (xEnglish - starterX) - textWidth2;
+                                } else {
+                                    englishRemainingWidth = xEnglish - (starterX + 28.641 * 2.83464567f + 10);
+                                }
+                                if (englishRemainingWidth < logoWidthModified + 10 * 2.83464567f) { // 英文超长
+                                    double addScale;
+                                    if (direction.equals("left")) {
+                                        addScale = (28.641 * 2.83464567f + lineWidth - (xEnglish - starterX) - logoWidthModified - 10 * 2.83464567f) / textWidth2; // 横线右侧终点 - 文字左端坐标 - Logo宽度
+                                    } else {
+                                        addScale = ((xEnglish + textWidth2 - starterX) - (28.641 * 2.83464567f + 10 * 2.83464567f) - logoWidthModified) / textWidth2; // 文字右端坐标 - 横线左侧起点 - Logo宽度
+                                    }
                                     scaleEnglish *= addScale;
                                     if (direction.equals("right")) {
                                         double newTextWidth2 = textWidth2 * addScale; // 计算调整后的新文字长度
@@ -518,7 +710,7 @@ public class PaidArea {
                                         adLogo.setFixedPosition((float) (moreLeftTextX - 5 * 2.83464567f - logoWidthModified), (float) yEnglish + (54 * 2.83464567f - logoHeightModified) / 2); // 自动浮动高度
                                     }
                                 }
-                            } else { // 后续列, LOGO在前
+                            } else { // 后续列, Logo在前
                                 if ((51.5 / logoHeight) * logoWidth * 2.83464567f < intervalPercent * (lineWidth - 10) - 2.83464567f) { // 高度为51.5时, 宽度没有超过间隔 
                                     float logoWidthModified = (float) (51.5 / logoHeight * logoWidth) * 2.83464567f; // 按照高度调整宽度
                                     adLogo.setWidth(logoWidthModified);
@@ -543,10 +735,6 @@ public class PaidArea {
                         }
 
                         document.add(adLogo);
-                    } catch (FileNotFoundException e) {
-                        System.err.println(e.getMessage());
-                    } catch (IOException e) {
-                        System.err.println(e.getMessage());
                     }
                 }
 
@@ -562,7 +750,7 @@ public class PaidArea {
                 canvas4.saveState();
                 canvas4.setTextMatrix((float) scaleChinese, 0, 0, 1, 0, 0);
 
-                canvas4.moveText(xChinese / scaleChinese, yChinese); //设置文本的起始位置
+                canvas4.moveText(xChinese / scaleChinese, yChinese); // 设置文本的起始位置
                 canvas4.showText(element[0]);
                 yChinese -= interval;
                 canvas4.endText();
@@ -579,24 +767,24 @@ public class PaidArea {
                 canvas5.saveState();
                 canvas5.setTextMatrix((float) scaleEnglish, 0, 0, 1, 0, 0);
 
-                canvas5.moveText(xEnglish / scaleEnglish, yEnglish); //设置文本的起始位置
+                canvas5.moveText(xEnglish / scaleEnglish, yEnglish); // 设置文本的起始位置
                 canvas5.showText(element[1]);
                 yEnglish -= interval;
                 canvas5.endText();
 
                 currentRow += 1;
-                //不位于第1列 且正好是新的一列的第1个
+                // 不位于第1列 且正好是新的一列的第1个
                 if (currentRow > branchNumLines && currentRow % branchNumLines == 1) {
                     yChinese = yOutline - 54.27 * 2.83464567f;
                     yEnglish = yOutline - 80.22 * 2.83464567f;
                 }
             }
-            //for循环输出出入口信息结束
+            // for循环输出出入口信息结束
 
-            //出入口上方图标
-            //创建一个临时的 PdfFormXObject
+            // 出入口上方图标
+            // 创建一个临时的 PdfFormXObject
             PdfFormXObject template2 = new PdfFormXObject(tempPageSize);
-            //在临时 canvas 上添加内容
+            // 在临时 canvas 上添加内容
             PdfCanvas canvas8 = new PdfCanvas(template2, pdfDocument);
 
             final float iconExitInterval = (float) 15 * 2.83464567f;
@@ -605,11 +793,12 @@ public class PaidArea {
             final float iconWidth2 = (float) 70.649 * 2.83464567f;
             final float iconInterval2 = (float) 8.603 * 2.83464567f;
 
-            if (direction.equals("left")) { //左对齐 设施图标
-                float nextInfoX2 = 0;
+            // 当前口设施图标
+            float nextInfoX2 = 0;
+            if (direction.equals("left") || (direction.equals("right") && arrowType == false)) { // 左对齐或右对齐但无箭头
                 int index2 = 1;
                 int publicTransport = 0;
-                for (String element : facilityInfo.get(i)) {//计算交通设施数量 只有最后一个加竖线
+                for (String element : facilityInfo.get(i)) { // 计算交通设施数量 只有最后一个加竖线
                     if (element.equals("卫生间") == false && element.equals("母婴室") == false && element.equals("垂梯") == false) {
                         publicTransport++;
                     }
@@ -623,7 +812,8 @@ public class PaidArea {
                                 canvas8.addXObject(pageXObject, nextInfoX2, 0);
                             }
                             nextInfoX2 += iconWidth2 + iconInterval2;
-                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_wheelchair_left.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_wheelchair.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
                                 PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
                                 canvas8.addXObject(pageXObject, nextInfoX2, 0);
                             }
@@ -640,7 +830,8 @@ public class PaidArea {
                                 canvas8.addXObject(pageXObject, nextInfoX2, 0);
                             }
                             nextInfoX2 += iconWidth2 + iconInterval2;
-                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_wheelchair_left.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_wheelchair.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
                                 PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
                                 canvas8.addXObject(pageXObject, nextInfoX2, 0);
                             }
@@ -697,8 +888,8 @@ public class PaidArea {
                         nextInfoX2 += iconWidth2;
                     }
 
-                    if (index2 >= publicTransport && index2 < facilityInfo.get(i).size()) {//只有最后一个公共交通设施加竖线
-                        //竖线
+                    if (index2 >= publicTransport && index2 < facilityInfo.get(i).size()) { // 只有最后一个公共交通设施加竖线
+                        // 竖线
                         canvas8.saveState()
                                 .setFillColor(black)
                                 .rectangle(nextInfoX2, 0, 1.59 * 2.83464567f, iconWidth2)
@@ -710,7 +901,118 @@ public class PaidArea {
 
                     index2++;
                 }
+            } else { // 右对齐 右箭头
+                int index2 = 1;
+                int publicTransport = 0;
+                for (String element : facilityInfo.get(i)) { // 计算交通设施数量 只有最后一个加竖线
+                    if (element.equals("卫生间") == false && element.equals("母婴室") == false && element.equals("垂梯") == false) {
+                        publicTransport++;
+                    }
+                }
 
+                for (int n = facilityInfo.get(i).size() - 1; n >= 0; n--) {
+                    String element = facilityInfo.get(i).get(n);
+                    switch (element) {
+                        case "卫生间" -> {
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_wheelchair_inverse.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                            }
+                            nextInfoX2 += iconWidth2 + iconInterval2;
+
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_toilet.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                            }
+                        }
+                        case "母婴室" -> {
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_nursing.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                            }
+                        }
+                        case "垂梯" -> {
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_wheelchair_inverse.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                            }
+                            nextInfoX2 += iconWidth2 + iconInterval2;
+
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_elevator.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                            }
+                        }
+                        case "国铁" -> {
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_railway.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                            }
+                        }
+                        case "长途客运" -> {
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_coach.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                            }
+                        }
+                        case "机场巴士" -> {
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_airportbus.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                            }
+                        }
+                        case "公交" -> {
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_bus.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                            }
+                        }
+                        case "停车场" -> {
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_parking.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                            }
+                        }
+                        case "出租车" -> {
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_taxi.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                            }
+                        }
+                        case "网约车" -> {
+                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_ehailing.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
+                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
+                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
+                            }
+                        }
+                        default -> {
+                        }
+                    }
+
+                    if (index2 < facilityInfo.get(i).size()) {
+                        nextInfoX2 += iconWidth2 + iconInterval2 * 1.1;
+                    } else {
+                        nextInfoX2 += iconWidth2;
+                    }
+
+                    if (index2 <= (facilityInfo.get(i).size() - publicTransport) && index2 < facilityInfo.get(i).size()) { // 只有最后一个公共交通设施加竖线
+                        // 竖线
+                        canvas8.saveState()
+                                .setFillColor(black)
+                                .rectangle(nextInfoX2, 0, 1.59 * 2.83464567f, iconWidth2)
+                                .fill()
+                                .restoreState();
+
+                        nextInfoX2 += 1.59 * 2.83464567f + iconInterval2 * 1.1;
+                    }
+
+                    index2++;
+                }
+            }
+            yOutline = (float) (yOutline - (92.692 + 94.252) * 2.83464567f - (numLines.get(i) - 1) * interval);
+
+            // 输出图标
+            if (direction.equals("left")) {
                 float scale2 = maxInfoX2 / nextInfoX2;
                 float correctX2 = starterX + (float) (28.641 + 73.16) * 2.83464567f + iconExitInterval;
                 float correctY2;
@@ -722,146 +1024,7 @@ public class PaidArea {
                     correctY2 = (float) (yOutline + (73.16 * 2.83464567f - iconWidth2) / 2);
                     finalCanvas2.addXObjectWithTransformationMatrix(template2, 1, 0, 0, 1, correctX2, correctY2);
                 }
-            } else { //右对齐 设施图标
-                if (arrowType == false) {
-                    swap(facilityInfo.get(i));
-                    swap(facilityInfo.get(i));
-                }
-
-                float nextInfoX2 = 0;
-                int index2 = 1;
-                int publicTransport = 0;
-                for (String element : facilityInfo.get(i)) {//计算交通设施数量 只有最后一个加竖线
-                    if (element.equals("卫生间") == false && element.equals("母婴室") == false && element.equals("垂梯") == false) {
-                        publicTransport++;
-                    }
-                }
-
-                for (int n = facilityInfo.get(i).size() - 1; n >= 0; n--) {
-                    String element = facilityInfo.get(i).get(n);
-                    switch (element) {
-                        case "卫生间" -> {
-                            if (arrowType == false) {
-                                try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_toilet.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
-                                    PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                                    canvas8.addXObject(pageXObject, nextInfoX2, 0);
-                                }
-                                nextInfoX2 += iconWidth2 + iconInterval2;
-
-                                try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_wheelchair_left.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
-                                    PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                                    canvas8.addXObject(pageXObject, nextInfoX2, 0);
-                                }
-                            } else {
-                                try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_wheelchair_right.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
-                                    PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                                    canvas8.addXObject(pageXObject, nextInfoX2, 0);
-                                }
-                                nextInfoX2 += iconWidth2 + iconInterval2;
-
-                                try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_toilet.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
-                                    PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                                    canvas8.addXObject(pageXObject, nextInfoX2, 0);
-                                }
-                            }
-                        }
-                        case "母婴室" -> {
-                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_nursing.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
-                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
-                            }
-                        }
-                        case "垂梯" -> {
-                            if (arrowType == false) {
-                                try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_elevator.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
-                                    PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                                    canvas8.addXObject(pageXObject, nextInfoX2, 0);
-                                }
-                                nextInfoX2 += iconWidth2 + iconInterval2;
-
-                                try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_wheelchair_left.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
-                                    PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                                    canvas8.addXObject(pageXObject, nextInfoX2, 0);
-                                }
-                            } else {
-                                try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_wheelchair_right.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
-                                    PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                                    canvas8.addXObject(pageXObject, nextInfoX2, 0);
-                                }
-                                nextInfoX2 += iconWidth2 + iconInterval2;
-
-                                try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_elevator.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
-                                    PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                                    canvas8.addXObject(pageXObject, nextInfoX2, 0);
-                                }
-                            }
-                        }
-                        case "国铁" -> {
-                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_railway.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
-                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
-                            }
-                        }
-                        case "长途客运" -> {
-                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_coach.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
-                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
-                            }
-                        }
-                        case "机场巴士" -> {
-                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_airportbus.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
-                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
-                            }
-                        }
-                        case "公交" -> {
-                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_bus.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
-                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
-                            }
-                        }
-                        case "停车场" -> {
-                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_parking.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
-                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
-                            }
-                        }
-                        case "出租车" -> {
-                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_taxi.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
-                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
-                            }
-                        }
-                        case "网约车" -> {
-                            try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/paid_ehailing.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
-                                PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
-                                canvas8.addXObject(pageXObject, nextInfoX2, 0);
-                            }
-                        }
-                        default -> {
-                        }
-                    }
-
-                    if (index2 < facilityInfo.get(i).size()) {
-                        nextInfoX2 += iconWidth2 + iconInterval2 * 1.1;
-                    } else {
-                        nextInfoX2 += iconWidth2;
-                    }
-
-                    if (index2 <= (facilityInfo.get(i).size() - publicTransport) && index2 < facilityInfo.get(i).size()) {//只有最后一个公共交通设施加竖线
-                        //竖线
-                        canvas8.saveState()
-                                .setFillColor(black)
-                                .rectangle(nextInfoX2, 0, 1.59 * 2.83464567f, iconWidth2)
-                                .fill()
-                                .restoreState();
-
-                        nextInfoX2 += 1.59 * 2.83464567f + iconInterval2 * 1.1;
-                    }
-
-                    index2++;
-                }
-
+            } else {
                 float scale2 = maxInfoX2 / nextInfoX2;
                 float correctX2;
                 float correctY2;
@@ -879,13 +1042,12 @@ public class PaidArea {
                     finalCanvas2.addXObjectWithTransformationMatrix(template2, 1, 0, 0, 1, correctX2, correctY2);
                 }
             }
-            yOutline = (float) (yOutline - (92.692 + 94.252) * 2.83464567f - (numLines.get(i) - 1) * interval);
 
             if (i == entrance.size() - 1) {
                 lastLineY = tempLineY + (float) interval - starterY;
             }
         }
-        //总代码结束
+        // 总循环结束
 
         backgroundColor = new DeviceCmyk(90, 0, 100, 0);
         PdfFormXObject pageXExit;
@@ -893,37 +1055,37 @@ public class PaidArea {
         try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/exit.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
             pageXExit = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
         }
-        if (arrowType == false) { //无箭头
-            if (direction.equals("right")) { //右对齐
-                //绿色出矩形
+        if (arrowType == false) { // 无箭头
+            if (direction.equals("right")) { // 右对齐
+                // 绿色出矩形
                 canvas.saveState()
                         .setFillColor(backgroundColor)
-                        .rectangle(pageSizeX - (128.5 * 2.83464567f), topsBottom, 128.5 * 2.83464567f, 128.5 * 2.83464567f)
+                        .rectangle(starterX + pageSizeX - (128.5 * 2.83464567f), topsBottom, 128.5 * 2.83464567f, 128.5 * 2.83464567f)
                         .fill()
                         .restoreState();
                 PdfCanvas canvas2 = new PdfCanvas(pdfDocument.getFirstPage());
-                float xExit = (float) (pageSizeX - 95.61 * 2.83464567f);
+                float xExit = starterX + (float) (pageSizeX - 95.61 * 2.83464567f);
                 float yExit = (float) (((topsBottom / 2.83464567f) + 22.164) * 2.83464567f);
-                canvas2.addXObject(pageXExit, starterX + xExit, starterY + yExit);
-            } else { //左对齐
-                //绿色出矩形
+                canvas2.addXObject(pageXExit, xExit, yExit);
+            } else { // 左对齐
+                // 绿色出矩形
                 canvas.saveState()
                         .setFillColor(backgroundColor)
-                        .rectangle(0, topsBottom, 128.5 * 2.83464567f, 128.5 * 2.83464567f)
+                        .rectangle(starterX, topsBottom, 128.5 * 2.83464567f, 128.5 * 2.83464567f)
                         .fill()
                         .restoreState();
                 PdfCanvas canvas2 = new PdfCanvas(pdfDocument.getFirstPage());
-                float xExit = (float) (32.89 * 2.83464567f);
+                float xExit = starterX + (float) (32.89 * 2.83464567f);
                 float yExit = (float) (((topsBottom / 2.83464567f) + 22.164) * 2.83464567f);
-                canvas2.addXObject(pageXExit, starterX + xExit, starterY + yExit);
+                canvas2.addXObject(pageXExit, xExit, yExit);
             }
-        } else { //带箭头
+        } else { // 带箭头
             PdfFormXObject pageXArrow;
             float y = (float) (((topsBottom / 2.83464567f) + 20.37) * 2.83464567f);
             float x;
             PdfCanvas canvas2 = new PdfCanvas(pdfDocument.getFirstPage());
             float yExit = (float) (((topsBottom / 2.83464567f) + 22.164) * 2.83464567f);
-            if (direction.equals("right")) { //右对齐 右箭头
+            if (direction.equals("right")) { // 右对齐 右箭头
                 try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/arrow_right.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
                     pageXArrow = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
                 }
@@ -934,7 +1096,7 @@ public class PaidArea {
                         .fill()
                         .restoreState();
                 canvas2.addXObject(pageXExit, (float) (((x / 2.83464567f) - 20.211 - 128.5 + 32.89) * 2.83464567f), yExit);
-            } else { //左对齐 左箭头
+            } else { // 左对齐 左箭头
                 try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/arrow_left.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
                     pageXArrow = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
                 }
@@ -949,13 +1111,13 @@ public class PaidArea {
             canvas2.addXObject(pageXArrow, x, y);
         }
 
-        //底部LOGO
+        // 底部LOGO
         try (InputStream pdfStreamIcon = UnpaidArea.class.getResourceAsStream("/pdfs/paid/logo.pdf"); PdfDocument srcPdfDocument = new PdfDocument(new PdfReader(pdfStreamIcon))) {
             PdfFormXObject pageXObject = srcPdfDocument.getFirstPage().copyAsFormXObject(pdfDocument);
             canvas.addXObject(pageXObject, starterX + (float) (pageSizeX - (129.4 * 2.83464567f)) / 2, starterY + (float) 7.117 * 2.83464567f);
         }
 
-        //出口信息文字
+        // 出口信息文字
         canvas.beginText();
         canvas.setFontAndSize(arial, 85);
         canvas.setTextRenderingMode(PdfCanvasConstants.TextRenderingMode.FILL_STROKE);
@@ -963,18 +1125,18 @@ public class PaidArea {
         canvas.setCharacterSpacing(0);
         canvas.setStrokeColor(black);
         canvas.setFillColor(black);
-        if (direction.equals("left")) { //左对齐
+        if (direction.equals("left")) { // 左对齐
             if (arrowType == false) {
-                canvas.moveText(starterX + 155.801 * 2.83464567f, starterY + pageSizeY - 103.458 * 2.83464567f); //设置文本的起始位置
+                canvas.moveText(starterX + 155.801 * 2.83464567f, starterY + pageSizeY - 103.458 * 2.83464567f); // 设置文本的起始位置
             } else {
-                canvas.moveText(starterX + 287.197 * 2.83464567f, starterY + pageSizeY - 103.458 * 2.83464567f); //设置文本的起始位置
+                canvas.moveText(starterX + 287.197 * 2.83464567f, starterY + pageSizeY - 103.458 * 2.83464567f); // 设置文本的起始位置
             }
-        } else { //右对齐
+        } else { // 右对齐
             float textWidth = arial.getWidth("Exit Information", 85);
             if (arrowType == false) {
-                canvas.moveText(starterX + pageSizeX - textWidth - 155.95 * 2.83464567f, starterY + pageSizeY - 103.458 * 2.83464567f); //设置文本的起始位置
+                canvas.moveText(starterX + pageSizeX - textWidth - 155.95 * 2.83464567f, starterY + pageSizeY - 103.458 * 2.83464567f); // 设置文本的起始位置
             } else {
-                canvas.moveText(starterX + pageSizeX - textWidth - 284.536 * 2.83464567f, starterY + pageSizeY - 103.458 * 2.83464567f); //设置文本的起始位置
+                canvas.moveText(starterX + pageSizeX - textWidth - 284.536 * 2.83464567f, starterY + pageSizeY - 103.458 * 2.83464567f); // 设置文本的起始位置
             }
         }
         canvas.showText("Exit Information");
@@ -984,27 +1146,27 @@ public class PaidArea {
         canvas.setFontAndSize(heiTi, 148);
         canvas.setTextRenderingMode(PdfCanvasConstants.TextRenderingMode.FILL_STROKE);
         canvas.setLineWidth(0.287f);
-        if (direction.equals("left")) { //左对齐
+        if (direction.equals("left")) { // 左对齐
             if (arrowType == false) {
-                canvas.moveText(starterX + 152.501 * 2.83464567f, starterY + pageSizeY - 67.62 * 2.83464567f); //设置文本的起始位置
+                canvas.moveText(starterX + 152.501 * 2.83464567f, starterY + pageSizeY - 67.62 * 2.83464567f); // 设置文本的起始位置
             } else {
-                canvas.moveText(starterX + 283.897 * 2.83464567f, starterY + pageSizeY - 67.62 * 2.83464567f); //设置文本的起始位置
+                canvas.moveText(starterX + 283.897 * 2.83464567f, starterY + pageSizeY - 67.62 * 2.83464567f); // 设置文本的起始位置
             }
-        } else { //右对齐
+        } else { // 右对齐
             float textWidth = heiTi.getWidth("出口信息", 148);
             if (arrowType == false) {
-                canvas.moveText(starterX + pageSizeX - textWidth - 155.766 * 2.83464567f, starterY + pageSizeY - 67.62 * 2.83464567f); //设置文本的起始位置
+                canvas.moveText(starterX + pageSizeX - textWidth - 155.766 * 2.83464567f, starterY + pageSizeY - 67.62 * 2.83464567f); // 设置文本的起始位置
             } else {
-                canvas.moveText(starterX + pageSizeX - textWidth - 284.363 * 2.83464567f, starterY + pageSizeY - 67.62 * 2.83464567f); //设置文本的起始位置
+                canvas.moveText(starterX + pageSizeX - textWidth - 284.363 * 2.83464567f, starterY + pageSizeY - 67.62 * 2.83464567f); // 设置文本的起始位置
             }
         }
         canvas.showText("出口信息");
         canvas.endText();
 
-        //底部设施信息
-        //创建一个临时的 PdfFormXObject
+        // 底部设施信息
+        // 创建一个临时的 PdfFormXObject
         PdfFormXObject template = new PdfFormXObject(tempPageSize);
-        //在临时 canvas 上添加内容
+        // 在临时 canvas 上添加内容
         PdfCanvas canvas7 = new PdfCanvas(template, pdfDocument);
 
         float infoYStarter = 0;
@@ -1041,34 +1203,35 @@ public class PaidArea {
                     canvas7.setStrokeColor(black);
                     canvas7.setFillColor(black);
                     canvas7.setCharacterSpacing((float) spacing);
-                    canvas7.moveText(nextInfoX, infoYStarterUpText); //设置文本的起始位置
+                    canvas7.moveText(nextInfoX, infoYStarterUpText); // 设置文本的起始位置
                     canvas7.showText("卫生间");
                     canvas7.endText();
 
                     canvas7.beginText();
-                    canvas7.moveText(nextInfoX, infoYStarterDownText); //设置文本的起始位置
+                    canvas7.moveText(nextInfoX, infoYStarterDownText); // 设置文本的起始位置
                     canvas7.showText("位于");
                     canvas7.endText();
 
                     nextInfoX += heiTi.getWidth("位于", 69) + spacing * ("位于".length() - 1) + spacing + 1 * 2.83464567f;
 
-                    String place = element[1]; //"A口/B口通道"
+                    String place = element[1]; // "A口/B口通道"
 
                     // 将字符串转换为字符数组
                     char[] charArray = place.toCharArray();
 
-                    for (char c : charArray) {
+                    for (int i = 0; i < charArray.length; i++) {
+                        char c = charArray[i];
                         canvas7.beginText();
-                        if (Character.isDigit(c)) {
+                        if (Character.isDigit(c) && i - 1 >= 0 && String.valueOf(charArray[i - 1]).matches("[A-Z]")) {
                             nextInfoX -= (0.5 * spacing);
                         }
-                        canvas7.moveText(nextInfoX, infoYStarterDownText); //设置文本的起始位置
-                        if (String.valueOf(c).matches("[A-Z]") || String.valueOf(c).equals("/")) {
-                            canvas7.setFontAndSize(arial, 69);
-                            nextInfoX += arial.getWidth(String.valueOf(c), 69) + spacing;
-                        } else if (Character.isDigit(c)) {
+                        canvas7.moveText(nextInfoX, infoYStarterDownText); // 设置文本的起始位置
+                        if (Character.isDigit(c) && i - 1 >= 0 && String.valueOf(charArray[i - 1]).matches("[A-Z]")) { // 角标
                             canvas7.setFontAndSize(arial, 45);
                             nextInfoX += arial.getWidth(String.valueOf(c), 45) + spacing;
+                        } else if (String.valueOf(c).matches("[A-Z]") || String.valueOf(c).equals("/") || Character.isDigit(c)) {
+                            canvas7.setFontAndSize(arial, 69);
+                            nextInfoX += arial.getWidth(String.valueOf(c), 69) + spacing;
                         } else {
                             canvas7.setFontAndSize(heiTi, 69);
                             nextInfoX += heiTi.getWidth(String.valueOf(c), 69) + spacing;
@@ -1091,32 +1254,33 @@ public class PaidArea {
                     canvas7.setStrokeColor(black);
                     canvas7.setFillColor(black);
                     canvas7.setCharacterSpacing((float) spacing);
-                    canvas7.moveText(nextInfoX, infoYStarterUpText); //设置文本的起始位置
+                    canvas7.moveText(nextInfoX, infoYStarterUpText); // 设置文本的起始位置
                     canvas7.showText("母婴室");
                     canvas7.endText();
 
                     canvas7.beginText();
-                    canvas7.moveText(nextInfoX, infoYStarterDownText); //设置文本的起始位置
+                    canvas7.moveText(nextInfoX, infoYStarterDownText); // 设置文本的起始位置
                     canvas7.showText("位于");
                     canvas7.endText();
 
                     nextInfoX += heiTi.getWidth("位于", 69) + spacing * ("位于".length() - 1) + spacing + 1 * 2.83464567f;
-                    String place = element[1]; //"A口/B口通道"
+                    String place = element[1]; // "A口/B口通道"
 
-                    //将字符串转换为字符数组
+                    // 将字符串转换为字符数组
                     char[] charArray = place.toCharArray();
-                    for (char c : charArray) {
+                    for (int i = 0; i < charArray.length; i++) {
+                        char c = charArray[i];
                         canvas7.beginText();
-                        if (Character.isDigit(c)) {
+                        if (Character.isDigit(c) && i - 1 >= 0 && String.valueOf(charArray[i - 1]).matches("[A-Z]")) {
                             nextInfoX -= (0.5 * spacing);
                         }
-                        canvas7.moveText(nextInfoX, infoYStarterDownText); //设置文本的起始位置
-                        if (String.valueOf(c).matches("[A-Z]") || String.valueOf(c).equals("/")) {
-                            canvas7.setFontAndSize(arial, 69);
-                            nextInfoX += arial.getWidth(String.valueOf(c), 69) + spacing;
-                        } else if (Character.isDigit(c)) {
+                        canvas7.moveText(nextInfoX, infoYStarterDownText); // 设置文本的起始位置
+                        if (Character.isDigit(c) && i - 1 >= 0 && String.valueOf(charArray[i - 1]).matches("[A-Z]")) { // 角标
                             canvas7.setFontAndSize(arial, 45);
                             nextInfoX += arial.getWidth(String.valueOf(c), 45) + spacing;
+                        } else if (String.valueOf(c).matches("[A-Z]") || String.valueOf(c).equals("/") || Character.isDigit(c)) {
+                            canvas7.setFontAndSize(arial, 69);
+                            nextInfoX += arial.getWidth(String.valueOf(c), 69) + spacing;
                         } else {
                             canvas7.setFontAndSize(heiTi, 69);
                             nextInfoX += heiTi.getWidth(String.valueOf(c), 69) + spacing;
@@ -1144,39 +1308,40 @@ public class PaidArea {
                     canvas7.setStrokeColor(black);
                     canvas7.setFillColor(black);
                     canvas7.setCharacterSpacing((float) spacing);
-                    canvas7.moveText(nextInfoX, infoYStarterUpText); //设置文本的起始位置
+                    canvas7.moveText(nextInfoX, infoYStarterUpText); // 设置文本的起始位置
                     canvas7.showText("电梯(站厅-地面)");
                     canvas7.endText();
 
                     canvas7.beginText();
-                    canvas7.moveText(nextInfoX, infoYStarterDownText); //设置文本的起始位置
+                    canvas7.moveText(nextInfoX, infoYStarterDownText); // 设置文本的起始位置
                     canvas7.showText("位于");
                     canvas7.endText();
 
-                    final float tempWidthUp = heiTi.getWidth("电梯(站厅-地面)", 69) + spacing * ("电梯(站厅-地面)".length() - 2);//此处-2因为括号会多占空位 因此少加一个space
+                    final float tempWidthUp = heiTi.getWidth("电梯(站厅-地面)", 69) + spacing * ("电梯(站厅-地面)".length() - 2); // 此处-2因为括号会多占空位 因此少加一个space
                     float tempWidthDown = heiTi.getWidth("位于", 69) + spacing * ("位于".length() - 1) + spacing + 1 * 2.83464567f;
                     float tempNextInfoX = nextInfoX + heiTi.getWidth("位于", 69) + spacing * ("位于".length() - 1) + spacing + 1 * 2.83464567f;
 
-                    String place = element[1]; //"A口/B口通道"
+                    String place = element[1]; // "A口/B口通道"
 
-                    //将字符串转换为字符数组
+                    // 将字符串转换为字符数组
                     char[] charArray = place.toCharArray();
 
-                    for (char c : charArray) {
+                    for (int i = 0; i < charArray.length; i++) {
+                        char c = charArray[i];
                         canvas7.beginText();
-                        if (Character.isDigit(c)) {
+                        if (Character.isDigit(c) && i - 1 >= 0 && String.valueOf(charArray[i - 1]).matches("[A-Z]")) {
                             tempNextInfoX -= 0.5 * spacing;
                             tempWidthDown -= 0.5 * spacing;
                         }
-                        canvas7.moveText(tempNextInfoX, infoYStarterDownText); //设置文本的起始位置
-                        if (String.valueOf(c).matches("[A-Z]") || String.valueOf(c).equals("/")) {
-                            canvas7.setFontAndSize(arial, 69);
-                            tempNextInfoX += arial.getWidth(String.valueOf(c), 69) + spacing;
-                            tempWidthDown += arial.getWidth(String.valueOf(c), 69) + spacing;
-                        } else if (Character.isDigit(c)) {
+                        canvas7.moveText(tempNextInfoX, infoYStarterDownText); // 设置文本的起始位置
+                        if (Character.isDigit(c) && i - 1 >= 0 && String.valueOf(charArray[i - 1]).matches("[A-Z]")) { // 角标
                             canvas7.setFontAndSize(arial, 45);
                             tempNextInfoX += arial.getWidth(String.valueOf(c), 45) + spacing;
                             tempWidthDown += arial.getWidth(String.valueOf(c), 45) + spacing;
+                        } else if (String.valueOf(c).matches("[A-Z]") || String.valueOf(c).equals("/") || Character.isDigit(c)) {
+                            canvas7.setFontAndSize(arial, 69);
+                            tempNextInfoX += arial.getWidth(String.valueOf(c), 69) + spacing;
+                            tempWidthDown += arial.getWidth(String.valueOf(c), 69) + spacing;
                         } else {
                             canvas7.setFontAndSize(heiTi, 69);
                             tempNextInfoX += heiTi.getWidth(String.valueOf(c), 69) + spacing;
@@ -1186,8 +1351,8 @@ public class PaidArea {
                         canvas7.endText();
                     }
 
-                    if (tempWidthUp > tempWidthDown) { //判断第一行文字和第二行文字哪个更长 以长的为准
-                        //nextInfoX += tempWidthUp + iconTextInterval + 3 * 2.83464567f;
+                    if (tempWidthUp > tempWidthDown) { // 判断第一行文字和第二行文字哪个更长 以长的为准
+                        // nextInfoX += tempWidthUp + iconTextInterval + 3 * 2.83464567f;
                         nextInfoX += tempWidthUp;
                     } else {
                         nextInfoX = tempNextInfoX;
@@ -1201,7 +1366,7 @@ public class PaidArea {
             if (index < facilityInfoBottom.size()) {
                 nextInfoX += iconTextInterval + 3 * 2.83464567f;
 
-                //竖线
+                // 竖线
                 canvas7.saveState()
                         .setFillColor(black)
                         .rectangle(nextInfoX, infoYStarter, 1.279 * 2.83464567f, iconWidth)
@@ -1231,7 +1396,7 @@ public class PaidArea {
             finalCanvas.addXObjectWithTransformationMatrix(template, 1, 0, 0, 1, starterX + correctX, starterY + correctY);
         }
 
-        //二维码绿色矩形
+        // 二维码绿色矩形
         backgroundColor = new DeviceCmyk(100, 0, 100, 0);
         float qrBaseX = starterX + (float) (pageSizeX - 80.906 * 2.83464567f);
         // float qrBaseY = starterY + bottomTop + (lastLineY - bottomTop) / 2 - (lastLineY - bottomTop) * (float) 0.0781;
@@ -1242,22 +1407,22 @@ public class PaidArea {
                 .fill()
                 .restoreState();
 
-        //二维码文字
+        // 二维码文字
         PdfCanvas canvas6 = new PdfCanvas(page);
         canvas6.beginText();
         canvas6.setFontAndSize(heiTi, 21);
         canvas6.setFillColor(black);
         canvas6.setCharacterSpacing((float) 1.8);
-        canvas6.moveText(qrBaseX, qrBaseY - 11.093 * 2.83464567f); //设置文本的起始位置
+        canvas6.moveText(qrBaseX, qrBaseY - 11.093 * 2.83464567f); // 设置文本的起始位置
         canvas6.showText("扫码获取实时");
         canvas6.endText();
 
         canvas6.beginText();
-        canvas6.moveText(qrBaseX, qrBaseY - 20.286 * 2.83464567f); //设置文本的起始位置
+        canvas6.moveText(qrBaseX, qrBaseY - 20.286 * 2.83464567f); // 设置文本的起始位置
         canvas6.showText("公交换乘信息");
         canvas6.endText();
 
-        //二维码图片
+        // 二维码图片
         ImageData data;
         try (InputStream qrCodeStream = UnpaidArea.class.getClassLoader().getResourceAsStream("images/" + stationNumber + stationName + ".png")) {
             data = ImageDataFactory.create(StreamUtil.inputStreamToArray(qrCodeStream));
@@ -1350,7 +1515,8 @@ public class PaidArea {
                 return "right";
             }
         }
-        return "温馨提示：尚未指定对齐方向，已默认向左对齐。"; // 如果没有检测到特定字符，则返回空字符串
+        System.out.print("温馨提示：尚未指定对齐方向，已默认向左对齐。"); // 如果没有检测到特定字符，发出提示
+        return "left";
     }
 
     public static String findEnglishLetters(String input) {
@@ -1438,16 +1604,16 @@ public class PaidArea {
     }
 
     public static int getEntranceNumber(String input) {
-        //查找字符串中第一个出现的“口”字的位置
+        // 查找字符串中第一个出现的“口”字的位置
         int indexOfKou = input.indexOf("口");
 
-        //如果找到了“口”字
+        // 如果找到了“口”字
         if (indexOfKou != -1 && indexOfKou > 0) {
-            //使用charAt方法获取“口”字前面的字符，然后将其转换为整数后返回
+            // 使用charAt方法获取“口”字前面的字符，然后将其转换为整数后返回
             return Character.getNumericValue(input.charAt(indexOfKou - 1));
         }
 
-        //如果没有找到“口”字，返回1
+        // 如果没有找到“口”字，返回1
         return 1;
     }
 

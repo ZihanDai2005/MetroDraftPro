@@ -43,17 +43,30 @@ import com.itextpdf.io.image.ImageDataFactory;
 import com.itextpdf.io.util.StreamUtil;
 import com.itextpdf.kernel.colors.Color;
 import com.itextpdf.kernel.colors.DeviceCmyk;
+import com.itextpdf.kernel.colors.Separation;
 import com.itextpdf.kernel.font.PdfFont;
 import com.itextpdf.kernel.font.PdfFontFactory;
 import com.itextpdf.kernel.geom.PageSize;
+import com.itextpdf.kernel.pdf.PdfArray;
+import com.itextpdf.kernel.pdf.PdfDictionary;
 import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfName;
+import com.itextpdf.kernel.pdf.PdfNumber;
+import com.itextpdf.kernel.pdf.PdfObject;
 import com.itextpdf.kernel.pdf.PdfPage;
 import com.itextpdf.kernel.pdf.PdfReader;
+import com.itextpdf.kernel.pdf.PdfStream;
+import com.itextpdf.kernel.pdf.PdfVersion;
 import com.itextpdf.kernel.pdf.canvas.PdfCanvas;
 import com.itextpdf.kernel.pdf.canvas.PdfCanvasConstants;
+import com.itextpdf.kernel.pdf.colorspace.PdfColorSpace;
+import com.itextpdf.kernel.pdf.colorspace.PdfSpecialCs;
+import com.itextpdf.kernel.pdf.function.PdfFunction;
+import com.itextpdf.kernel.pdf.function.PdfFunction.Type2;
 import com.itextpdf.kernel.pdf.xobject.PdfFormXObject;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.element.Image;
+import java.awt.geom.GeneralPath;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -70,15 +83,17 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.poi.ss.usermodel.Row;
 
 /**
  *
- * @author daizhenjin
+ * @author Z.D.
  */
 public class MainClass {
 
     private static String filePath; // 用于存储文件路径
     private static String directoryPath; // 用于存储文件夹路径
+    private static boolean isSelected;
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(MainClass::createAndShowGUI);
@@ -98,7 +113,7 @@ public class MainClass {
 
         JTextField textField = new JTextField();
         textField.setColumns(20);
-        textField.setText("请用空格分隔 第1列为0");
+        textField.setText("请用空格分隔");
         textField.setForeground(java.awt.Color.GRAY);
         topPanel.add(textField);
 
@@ -133,7 +148,7 @@ public class MainClass {
         // Event Listeners
         textField.addFocusListener(new FocusAdapter() {
             public void focusGained(FocusEvent e) {
-                if (textField.getText().equals("请用空格分隔 第1列为0")) {
+                if (textField.getText().equals("请用空格分隔")) {
                     textField.setText("");
                     textField.setForeground(java.awt.Color.BLACK);
                 }
@@ -142,19 +157,19 @@ public class MainClass {
             public void focusLost(FocusEvent e) {
                 if (textField.getText().isEmpty()) {
                     textField.setForeground(java.awt.Color.GRAY);
-                    textField.setText("请用空格分隔 第1列为0");
+                    textField.setText("请用空格分隔");
                 }
             }
         });
 
         selectAllCheckbox.addActionListener(e -> {
-            boolean isSelected = selectAllCheckbox.isSelected();
+            isSelected = selectAllCheckbox.isSelected();
             textField.setEnabled(!isSelected);
             if (isSelected) {
                 textField.setText("");
             } else {
                 textField.setForeground(java.awt.Color.GRAY);
-                textField.setText("请用空格分隔 第1列为0");
+                textField.setText("请用空格分隔");
             }
         });
 
@@ -190,10 +205,10 @@ public class MainClass {
         // 生成按钮事件监听
         generateButton.addActionListener(e -> {
             PdfWriter pdfWriter = null;
+            ArrayList<Integer> col = new ArrayList<>();
             try {
                 File excelFile = new File(filePath);
                 String path = directoryPath;
-
                 String stationNumber = "";
                 String stationName = "";
                 String titleStationName = "";
@@ -201,6 +216,7 @@ public class MainClass {
                     BufferedInputStream bis = new BufferedInputStream(new FileInputStream(excelFile));
                     XSSFWorkbook workbook = new XSSFWorkbook(bis);
                     XSSFSheet sheet = workbook.getSheetAt(0);
+                    
                     // 获取类型 如"付费区"或"非付费区"
                     XSSFCell titleCell = sheet.getRow(0).getCell(0);
                     stationNumber = getStationNumber(titleCell.getStringCellValue())[1];
@@ -210,6 +226,23 @@ public class MainClass {
                     } else {
                         titleStationName = stationName;
                     }
+
+                    if (textField.getText().equals("") || textField.getText().equals("请用空格分隔") || isSelected == true) {
+                        // 如果全选 遍历所有列
+                        Row row = sheet.getRow(2);
+                        for(int i = 0; i < row.getLastCellNum(); i++){
+                            if(row.getCell(i) != null && !row.getCell(i).getStringCellValue().equals("")){
+                                col.add(i);
+                            }
+                        }
+                    }else{
+                        // 如果输入了列数
+                        String[] tempCol = textField.getText().split(" ");
+                        for(String i : tempCol){
+                            col.add(Integer.parseInt(i) - 1); // 全部-1以符合实际坐标从0开始
+                        }
+                    }
+                    
                 } catch (FileNotFoundException ex) {
                     System.err.println(ex.getMessage());
                 } catch (IOException ex) {
@@ -233,10 +266,6 @@ public class MainClass {
 
                 final int startRow = 2;
 
-                ArrayList<Integer> col = new ArrayList<>();
-                col.add(10);
-                col.add(13);
-
                 PageSize pageSize = new PageSize(4500 * 2.83464567f, 4500 * 2.83464567f);
                 pdfWriter = new PdfWriter(path, new WriterProperties().setCompressionLevel(0));
                 PdfDocument pdfDocument = new PdfDocument(pdfWriter);
@@ -244,6 +273,21 @@ public class MainClass {
                 Document document = new Document(pdfDocument);
 
                 PdfCanvas canvas = new PdfCanvas(page);
+
+//                // 定义替代色彩空间为CMYK
+//                PdfColorSpace alternateCS = PdfColorSpace.makeColorSpace(new PdfName("DeviceCMYK"));
+//
+//                // 创建颜色转换函数
+//                PdfArray domain = new PdfArray(new float[]{0, 1});
+//                PdfArray range = new PdfArray(new float[]{0, 1, 0, 1, 0, 1, 0, 1});
+//                PdfArray c0 = new PdfArray(new float[]{0, 0, 0, 0});
+//                PdfArray c1 = new PdfArray(new float[]{0.87f, 0.53f, 0f, 0f});
+//                PdfNumber n = new PdfNumber(1);
+//                PdfFunction tintFunction = new PdfFunction.Type2(domain, range, c0, c1, n);
+//
+//                // 创建专色色彩空间
+//                Separation pantoneColor = new Separation("PANTONE 300 C", alternateCS, tintFunction, 1);
+
                 Color backgroundColor = new DeviceCmyk(0, 100, 100, 0);
                 canvas.saveState()
                         .setFillColor(backgroundColor)
@@ -264,6 +308,10 @@ public class MainClass {
                 float xl = 685;
                 float yl = 1725;
                 for (int i = 0; i < col.size(); i++, x += (xl + 200)) {
+                    if (i == 4) {
+                        x = 500;
+                        y = 300;
+                    }
                     int currentCol = col.get(i);
                     String type = "";
                     String printInfo = "";
@@ -291,7 +339,7 @@ public class MainClass {
 
                     data.add(pdfDocument);
                     data.add(page);
-                    data.add(excelFile); //excel文件路径
+                    data.add(excelFile); // Excel文件
                     data.add(document);
 
                     // 根据选项调用不同的类的main方法
