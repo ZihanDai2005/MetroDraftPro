@@ -43,9 +43,13 @@ This automation enables:
 - Built reusable methods for positioning elements dynamically based on input data and layout constraints.
 - Ensured all outputs followed design regulations issued by **Fuzhou Metro’s design department**.
 
+**⚠️ This project requires a specific Excel input format and is not open for public use. Code is shared for technical discussion and knowledge exchange only.**
+
+
 ---
 
-## 地铁出口信息 PDF 自动生成工具（已实际应用于福州地铁）
+
+## 地铁出口信息 PDF 自动生成工具
 
 本项目用于为 **福州地铁** 出口信息设计制作系统提供技术支撑，能够自动从 Excel 数据生成 **CMYK 印刷标准**的 PDF 文件，适用于张贴于地铁站内的出入口导视贴纸。目前该工具已被用于实际车站出入口信息更新中，输出内容经过核验后直接交付印刷使用。
 
@@ -53,13 +57,13 @@ This automation enables:
 
 在实际地铁运营中，**每个车站的工作人员**都负责维护和更新车站出入口周边的**建筑、机构、公交、场所信息**等。由于这些信息经常发生变动（例如新开商铺、公交线路调整等），每隔一段时间，地铁站需要重新**印刷新的出口信息贴纸**来替换张贴。
 
-以往的流程往往涉及：
+以往流程涉及：
 
-- 车站将数据填入 Excel 表格  
+- 车站将数据更新进 Excel 表格  
 - 设计师人工调整稿件（包括文字间距、中英文对齐、字体适配等）  
 - 设计师导出 PDF 后交给印刷厂
 
-这不仅耗时，而且容易出错，且设计师资源紧张、沟通成本高。
+这耗时易错，且设计师资源紧张、沟通成本高。
 
 ### 工作流自动化方案
 
@@ -84,3 +88,5 @@ This automation enables:
 - **支持轮椅、垂梯、公交、铁路图标等福州地铁原生视觉元素**，并可根据 **箭头方向自动调整图标朝向与尺寸**，并依据信息重要性自动调整图标顺序；
 - 完全兼容 CMYK 输出标准，适配大幅面工业印刷；
 - 所有输出均符合 **福州地铁集团设计规范** 要求。
+
+**⚠️ 本项目需配合特定格式 Excel 表格使用，暂不对外开放，代码仅用于技术交流与经验分享。**
