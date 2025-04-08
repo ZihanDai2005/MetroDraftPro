@@ -45,6 +45,11 @@ This automation enables:
 
 **⚠️ This project requires a specific Excel input format and is not open for public use. Code is shared for technical discussion and knowledge exchange only.**
 
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/84d3b47c-b9c4-4618-a3ed-b07c206fb654" height="280"/>
+  <img src="https://github.com/user-attachments/assets/be75e602-bfd6-4cd3-abbf-843bfcc0bff2" height="280" style="margin-left: 10px"/>
+</p>
+
 
 ---
 
